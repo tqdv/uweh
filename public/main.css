@@ -1,0 +1,181 @@
+:root {
+	--field-color: #F8F8F8;
+	--highlight-color: #FFF;
+	--select-color: #AAA;
+	--border-line: 1px solid #CCC;
+}
+
+html {
+	color: hsl(0, 0%, 20%);
+	background-color: #FEFEFE;
+	font-size: 12pt;
+	font-family: sans-serif;
+}
+
+body {
+	margin: 0;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	min-height: 100vh;
+	/* padding: 0; */
+	
+	background-image: url("img/riamu.png");
+	background-repeat: no-repeat;
+	background-position: bottom left;
+}
+
+main {
+	min-width: 20rem;
+	margin: 0 1ch;
+	background-color: #FEFEFEBB;
+}
+
+h1 {
+	font-size: 4rem;
+	margin-bottom: 0;
+}
+#explanation {
+	margin-top: 0;
+	font-size: 1.3rem;
+	margin-bottom: 2rem;
+}
+
+#header {
+	margin: 2rem auto;
+}
+
+#header * {
+	text-align: center;
+	margin: 0;
+}
+
+.payload-msg {
+	margin-top: 3rem;
+	padding: 1rem;
+	font-size: 1.4rem;
+	text-align: center;
+	line-height: 4rem;
+}
+
+.payload-msg a {
+	text-decoration: none;
+}
+
+.error-msg {
+	background-color: #FFB9B9;
+	color: #111;
+	border-radius: 0.5rem;
+}
+
+/* The form */
+
+#upload-form {
+	display: flex;
+	flex-direction: column;
+	margin: auto;
+	margin-top: 1rem;
+	padding: 1rem;
+	min-width: 20rem;
+	max-width: 35rem;
+	align-items: center;
+}
+
+#upload-form input,button {
+	background-color: var(--field-color);
+}
+
+#upload-it {
+	font-size: 1.2em;
+	margin: 1rem auto;
+	line-height: 1.7em;
+}
+
+#file-form {
+	margin: 1rem auto;
+}
+
+#file-input {
+	border-radius: 0.5ex;
+	padding: 2px;
+	border: var(--border-line);
+}
+
+.upload-btn {
+	display: block;
+	margin: 2em auto;
+	padding: 1ex 1ch;
+	border: var(--border-line);
+	border-radius: 0.5ex;
+	box-shadow:
+		0 2px 0 rgba(34,34,34,.1), /* darken bottom */
+		inset 0 2px 0 rgba(255, 255, 255, .3) /* lighten top */;
+	font-size: 1.1em;
+	text-align: center;
+}
+
+.upload-btn:hover {
+	background-color: var(--highlight-color);
+}
+
+.upload-btn:active {
+	background-color: var(--select-color);
+	box-shadow: none;
+}
+
+.button-ctn {
+	display: flex;
+}
+
+/* Upload options */
+
+#upload-options {
+	display: table; /* Fit box to contents */
+}
+
+#extra-options {
+	margin-top: 0;
+	margin-bottom: 0.2em;
+}
+
+#extra-options + p {
+	display: inline-block;
+	margin-top: 0;
+	padding-left: 4ch;
+	line-height: 1.8em;
+}
+
+/* TODO Make checkbox bigger ? */
+#random-check {}
+
+#name-input {
+	padding: 0.5ex 0.5ch;
+	border-radius: 0.25ex;
+	border: none;
+	border: var(--border-line);
+}
+
+#name-input:focus {
+	box-shadow: inset 1px 1px 0 var(--select-color), inset -1px -1px 0 var(--select-color);
+	border-color: var(--select-color);
+}
+
+.gen-line {
+	color: hsla(0, 0%, 5%, .2);
+	font-size: x-small;
+}
+
+/* Utility classes */
+
+.center-text {
+	text-align: center;
+}
+
+.no-click {
+	pointer-events: none;
+}
+
+.not-a-link {
+	color: inherit;
+	text-decoration: inherit;
+}
