@@ -7,11 +7,13 @@ Uweh\timer();
 <html lang="en">
 <head>
 	<meta charset="utf-8">
-	<title>Filedrop.tk - Ephemeral file hosting</title>
+	<title>Uweh - Ephemeral file hosting</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<!-- Maybe OpenGraph tags and favicon! ?-->
+	<!-- Maybe OpenGraph tags ?-->
 	<link rel="stylesheet" href="main.css">
 	<link rel="canonical" href="<?= UWEH_MAIN_URL ?>">
+	<meta name=description content="Ephemeral file hosting. Share files up to <?= Uweh\human_bytes(UWEH_MAX_FILESIZE) ?> for <?= UWEH_MAX_RETENTION_TEXT ?>.">
+	<link rel="icon" type="image/png" href="favicon.png"/>
 	<script>/**/</script> <!-- Prevent FOUC in Firefox -->
 </head>
 <body>
@@ -28,7 +30,7 @@ function fatal (string $msg) {
 $file = $_FILES['file'] ?? null;
 
 if (isset($file)) {
-	# Process file
+# Process file
 	if (! Uweh\is_single_file($file)) {
 		die("Multiple files ??"); # FIXME
 	}
@@ -46,13 +48,10 @@ if (isset($file)) {
 		$download_url = Uweh\get_download_url($filename);
 		$pretty_url = Uweh\get_pretty_download_url($filename);
 		
-		
-		echo '<p class="payload-msg">';
-			echo "Your download link is <a href=\"$download_url\">$pretty_url</a>";
-			if ($download_url !== $pretty_url) {
-				echo "<br>or <a href=\"$download_url\">$download_url</a>";
-			}
-		echo '</p>';
+		echo "<p class=\"payload-msg\">Your download link is<br><a href=\"$download_url\">$pretty_url</a></p>";
+		if ($download_url !== $pretty_url) {
+			echo "<p class=\"payload-msg\">or <a href=\"$download_url\">$download_url</a></p>";
+		}
 	
 	} catch (Exception $e) {
 		switch (Uweh\error_category($e)) {
@@ -71,10 +70,11 @@ if (isset($file)) {
 		}
 	}
 	
+	# Display back button
 	echo '<div class="button-ctn"><a class="upload-btn not-a-link" href="'.UWEH_MAIN_URL.'">Go back</a><div>';
 
 } else {
-	# Display form
+# Display form
 ?>
 	<form id="upload-form" method="post" enctype="multipart/form-data">
 		<input type="hidden" name="MAX_FILE_SIZE" value="<?= UWEH_MAX_FILESIZE ?>">
@@ -103,6 +103,7 @@ if (isset($file)) {
 }
 ?>
 </main>
+<p><a href="about.php">About this website</a></p>
 
 <?php
 # Run cleanup job

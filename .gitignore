@@ -1,4 +1,8 @@
 /src/config.php
+
+/public/favicon.png
+/public/img/riamu.png
 /public/files/*
 
 /tmp/
+/notes.local.md

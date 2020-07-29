@@ -126,9 +126,13 @@ row("Main url has trailing slash", UWEH_MAIN_URL, UWEH_MAIN_URL[-1] === '/');
 
 row("Max retention time is a positive integer\n(in minutes)", UWEH_MAX_RETENTION_TIME, is_int(UWEH_MAX_RETENTION_TIME) && UWEH_MAX_RETENTION_TIME > 0);
 
+row("UWEH_MAX_RETENTION_TEXT corresponds to UWEH_MAX_RETENTION_TIME in minutes", UWEH_MAX_RETENTION_TEXT, "meh");
+
 row("Download url has trailing slash", UWEH_DOWNLOAD_URL, UWEH_DOWNLOAD_URL[-1] === '/');
 
-row("Files path has trailing slash", UWEH_FILES_PATH, UWEH_FILES_PATH[-1] === '/');
+$files_dir_trslash = UWEH_FILES_PATH[-1] === '/';
+row("Files path has trailing slash", UWEH_FILES_PATH, $files_dir_trslash);
+if (!$files_dir_trslash) exit;
 
 row("UWEH_MAX_FILESIZE is a positive integer\n(in bytes)", UWEH_MAX_FILESIZE, is_int(UWEH_MAX_FILESIZE) && UWEH_MAX_FILESIZE > 0);
 
@@ -171,6 +175,9 @@ $test_file = $files_dir.'/.keep';
 row("Files directory is writable", file_put_contents($test_file, time()) !== False);
 unlink($test_file);
 
+$src_test_file = dirname(__FILE__, 2) . '/src/.test_write';
+row("Source directory is writable", file_put_contents() !== False);
+unlink($src_test_file);
 
 
 # TODO check if folder exists

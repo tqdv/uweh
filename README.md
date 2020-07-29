@@ -1,28 +1,42 @@
 # Uweh
 
-Ephemeral file hosting
+Ephemeral file hosting. An [Uguu](https://github.com/nokonoko/Uguu) clone.
 
-Minimal PHP version: 7.0 (because of `??`, `define(…, array(…))`)
+## Requirements
+
+* PHP version >= 7.0 (because of `??`, `define(…, array(…))`)
+* Perl, a shell and the find command (for the cleanup script)
 
 Recommended:
-- mbstring: if you need to truncate a filename correctly
+- php-mbstring: if you want to truncate a filename correctly
 
 ## Installation
 
+- Get the files on your server (to build a tarball, use `tar cf uweh.tar.gz public/ src/ README.md`)
 - Copy `src/config.template.php` to `src/config.php` and customize it to your liking. 
-- Configure the web server for `index.php`, `prereq.php` (and `api.php` if needed)
+- Configure the web server to serve php files (`/public/`) and the uploaded files (`/public/files/` or your custom directory).
 - Add the file cleaning job to your crontab:
   ```cron
-  0,15,30,45 * * * * sh /path/to/uguu/src/clean_files.sh
+  0,15,30,45 * * * * sh /path/to/uweh/src/clean_files.sh
   ```
-- Optionally: configure your web server to set the `Content-Disposition` header appropriately for the files
+- Make sure that filesize limits in php.ini (`upload_max_filesize`), and your webserver (`client_max_body_size` for nginx, `LimitRequestBody` for Apache) are larger than `UWEH_MAX_FILESIZE`.
+- Optional: Create a virtual filesystem and mount it at `/public/files` to limit disk usage
 - Open `status.php` in your browser and check that everything is in order
 - Move `status.php` to `status.txt` to protect sensitive information
+- Customization
+  - Change the contact email in `about.php` as well as the link target.
+  - Customize the html title in both `index.php` and `about.php`.
+  - Customize the About page
+  - Upload the background image at `/img/riamu.png`
+  - Upload a favicon at `/favicon.png`
 
+## License
 
-## Todo
+MIT
 
-- Content-Disposition in nginx config
+## Caveats
+
+- It would be nice to strip off the random prefix when serving the file by setting the `Content-Disposition` header, but I couldn't find a way to do that nicely in the webserver.
 
 ## Notes
 
