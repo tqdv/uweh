@@ -9,12 +9,18 @@ Uweh\timer();
 	<meta charset="utf-8">
 	<title>Uweh - Ephemeral file hosting</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<!-- Maybe OpenGraph tags ?-->
 	<link rel="stylesheet" href="main.css">
 	<link rel="canonical" href="<?= UWEH_MAIN_URL ?>">
-	<meta name=description content="Ephemeral file hosting. Share files up to <?= Uweh\human_bytes(UWEH_MAX_FILESIZE) ?> for <?= UWEH_MAX_RETENTION_TEXT ?>.">
+	<meta name=description content="Share files up to <?= Uweh\human_bytes(UWEH_MAX_FILESIZE) ?> for <?= UWEH_MAX_RETENTION_TEXT ?>.">
 	<link rel="icon" type="image/png" href="favicon.png"/>
 	<script>/**/</script> <!-- Prevent FOUC in Firefox -->
+	<!-- OpenGraph tags -->
+	<meta property="og:title" content="Uweh - Ephemeral file hosting">
+	<meta property="og:type" content="website">
+	<meta property="og:image" content="<?= UWEH_MAIN_URL . 'img/riamu.png' ?>">
+	<meta property="og:url" content="<?= UWEH_MAIN_URL ?>">
+	<meta property="og:description" content="Share files up to <?= Uweh\human_bytes(UWEH_MAX_FILESIZE) ?> for <?= UWEH_MAX_RETENTION_TEXT ?>.">
+	<meta property="og:locale" content="en_US" />
 </head>
 <body>
 <main>
