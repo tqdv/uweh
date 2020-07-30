@@ -7,14 +7,15 @@ use \Exception;
 require_once 'config.php';
 
 # Entry point. Steps: check input, generate filename, save file, return filename
-# user intents (right types) → download url throws BadFileExtension | SaveFail | FileException
-# single file array, [bool $str, string $name]
+# We assume that our arguments have the right types
+# (single_file_array $file, [bool $str, string $name]) → string $filename throws BadFileExtension | SaveFail | FileException
+# 
 function process (array $file, array $flags = array()) {
-	check_file($file);
+	check_file($file); # check filesize and errors
 	
 	$name = $file['name'] ?? ""; # File name supplied
 	if (strlen($flags['name'])) { $name = $flags['name']; }
-	$name = sanitize_name($name);
+	$name = sanitize_name($name); # also truncates it
 	
 	$gen_random = ($flags['random'] ?? False) || strlen($name) == 0;
 	
@@ -66,6 +67,7 @@ function get_pretty_download_url (string $filename) {
 	return UWEH_DOWNLOAD_URL.pretty_urlencode($filename);
 }
 
+# Try to run poor man's cron cleanup job based on the configuration
 # Returns whether it ran the cleanup job
 function poor_mans_cron_cleanup () {
 	$ran_cleanup = False;
@@ -108,8 +110,8 @@ class SaveFail extends Exception {
 	}
 }
 
-# Check file size and error code FIXME
-# ... throws Uweh\FileException
+# Check file size and error code
+# … → () throws Uweh\FileException
 function check_file (array $file) {
 	$error = $file['error'];
 	# Check file size
