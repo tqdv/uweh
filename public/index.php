@@ -13,7 +13,6 @@ Uweh\timer();
 	<link rel="canonical" href="<?= UWEH_MAIN_URL ?>">
 	<meta name=description content="Share files up to <?= Uweh\human_bytes(UWEH_MAX_FILESIZE) ?> for <?= UWEH_MAX_RETENTION_TEXT ?>.">
 	<link rel="icon" type="image/png" href="favicon.png"/>
-	<script>/**/</script> <!-- Prevent FOUC in Firefox -->
 	<!-- OpenGraph tags -->
 	<meta property="og:title" content="Uweh - Ephemeral file hosting">
 	<meta property="og:type" content="website">

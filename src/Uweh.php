@@ -6,7 +6,7 @@ use \Exception;
 
 require_once 'config.php';
 
-# Entry point. Steos: check input, generate filename, save file, return filename
+# Entry point. Steps: check input, generate filename, save file, return filename
 # user intents (right types) → download url throws BadFileExtension | SaveFail | FileException
 # single file array, [bool $str, string $name]
 function process (array $file, array $flags = array()) {
