@@ -1,24 +1,59 @@
 #!/bin/sh
+# 
+# clean_files.sh - Delete expired files from Uweh
+# 
+# === Synopsis ===
+# 
+#   ```sh
+#   # Call with no arguments to delete expired files based on config.php
+#   ./clean_files.sh
+#   
+#   # Call with any argument to check config.php:
+#   ./clean_files.sh test
+#   ```
+# 
+# === Description
+# 
+# We grab the necessary information from the configuration file using perl regexes,
+# and then use `find` to delete expired files and empty folders.
+# 
+# We only check that the configuration variables are non empty.
+# To make sure they are correct, run this script with an argument eg. `./clean_files.sh test`
+# which will display the loaded configuration
+# 
+# === Exit codes ===
+# 
+# * 0: Success
+# * 1: Error before file deletion
+# * 2: Error after file deletion
+# 
+# === Misc ===
+# 
+# Linted with <https://www.shellcheck.net/>
 
-# Pass an argument for the script to print OK and exit if the configuration is valid
+# Change directory to repo root
+cd "$(dirname "$0")" && cd .. || exit 1
 
-cd "$(dirname "$0")" || exit;
-cd ..;
-
+# Grab relevant variables from src/config.php
 FILE_ROOT=$( perl -ne 'print $1 if /UWEH_FILES_PATH"\s*,\s*"([^"]+)"/' src/config.php )
 MIN_AGE=$( perl -ne 'print eval $1 if /UWEH_MAX_RETENTION_TIME"\s*,\s*([0-9_]+)/' src/config.php )
-# The underscore in the character class allows for underscore in numbers, which is processed with perl's eval
+# ^ The underscore in the character class allows for underscores in PHP number literals,
+#   which is then processed correctly by perl's eval
 
-if [ -z "$FILE_ROOT" ] || [ -z "$MIN_AGE" ]
-then exit
+# Test config and exit if we were called with an argument
+if [ -n "$1" ]; then
+	echo "=== Configuration and Status ==="
+	echo "Script working directory: $(pwd)"
+	echo "File directory: $FILE_ROOT"
+	echo "Maximum file age (in minutes): $MIN_AGE"
+	exit 0
 fi
 
-if [ ! -z "$1" ]
-then
-	echo "OK";
-	echo "$FILE_ROOT"
-	echo "$MIN_AGE"
-	exit
-fi
+# Silently exit if we couldn't get configuration
+{ [ -z "$FILE_ROOT" ] || [ -z "$MIN_AGE" ]; } && exit 1
 
-find "$FILE_ROOT" -mmin +"$MIN_AGE" -exec rm -f {} \;
+# Delete files and empty folders
+find "$FILE_ROOT" -mindepth 1 -type f -mmin +"$MIN_AGE" -exec rm -f '{}' \; || exit 2
+find "$FILE_ROOT" -mindepth 1 -maxdepth 1 -empty -type d -exec rmdir '{}' \; || exit 2
+
+exit 0

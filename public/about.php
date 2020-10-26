@@ -10,9 +10,9 @@ header('Content-Type: text/html; charset=utf-8');
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<!-- Maybe OpenGraph tags ?-->
 	<link rel="stylesheet" href="main.css">
-	<link rel="canonical" href="<?= UWEH_MAIN_URL ?>">
+	<link rel="canonical" href="<?= UWEH_MAIN_URL.'about.php' ?>">
 	<link rel="icon" type="image/png" href="favicon.png"/>
-	<script>/**/</script> <!-- Prevent FOUC in Firefox -->
+	<script>0</script> <!-- Prevent FOUC in Firefox -->
 </head>
 <body>
 <main>
@@ -28,7 +28,7 @@ header('Content-Type: text/html; charset=utf-8');
 
 <h3>Content restrictions</h3>
 <p>This website is not affiliated with the files users upload.</p>
-<p>Child pornography and other illegal files are <strong>*not*</strong> allowed, please report offending files to <a href="mailto:abuse@example.com">abuse@example.com</a> and they will be prompty deleted.</p>
+<p>Child pornography and other illegal files are <strong>*not*</strong> allowed, please report offending files to <a href="mailto:<?= UWEH_ABUSE_EMAIL ?>"><?= UWEH_ABUSE_EMAIL ?></a> and they will be prompty deleted.</p>
 
 <h3>Privacy</h3>
 

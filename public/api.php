@@ -32,25 +32,24 @@ $random = isset($random) ? (bool) strlen($random) : False;
 
 # Try to save the file
 try {
-	$filename = Uweh\process($file, array(
+	$filepath = Uweh\save_file($file, array(
 		"random" => $random,
 		"name" => $name,
 	));
-	echo Uweh\get_download_url($filename);
+	echo Uweh\get_download_url($filepath);
 
 } catch (Exception $e) {
-	switch (Uweh\error_category($e)) {
-	case Error::SOME_ERROR:
-		fatal("An error occured"); break;
-	case Error::TOO_LARGE:
-		fatal("File is too large. Should be less than ".Uweh\human_bytes(UWEH_MAX_FILESIZE)."."); break;
-	case Error::NO_FILE:
-		fatal("No file was succesfully uploaded"); break;
-	case Error::SERVER_ERROR:
-		fatal("Server error due to a misconfiguration or a full disk. Check back later."); break;
-	case Error::BAD_FILE:
-		fatal("File was rejected because its file extension is blocked"); break;
-	default:
-		exit(0);
+	switch (Error::categorize($e)) {
+		case Error::SOME_ERROR:
+			fatal("An error occured"); break;
+		case Error::BAD_FILE:
+			fatal("The file is rejected. It should be less than ".Uweh\human_bytes(UWEH_MAX_FILESIZE).", not empty and have an allowed extension."); break;
+		case Error::UPLOAD_FAIL:
+			fatal("The file upload failed"); break;
+		case Error::SERVER_ERROR:
+			fatal("Server error due to a misconfiguration or a full disk. Check back later."); break;
+		default:
+			fatal("An unknown error occured");
 	}
+	exit(0);
 }

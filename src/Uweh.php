@@ -3,185 +3,258 @@
 namespace Uweh;
 
 use \Exception;
-
 require_once 'config.php';
 
-# Entry point. Steps: check input, generate filename, save file, return filename
-# We assume that our arguments have the right types
-# (single_file_array $file, [bool $str, string $name]) → string $filename throws BadFileExtension | SaveFail | FileException
-# 
-function process (array $file, array $flags = array()) {
-	check_file($file); # check filesize and errors
+const VERSION = "2.0";
+
+const PREFIX_ALPHABET = 'abdefghjknopqstuvxyzABCDEFHJKLMNPQRSTUVWXYZ345679'; # 49 letters without homoglyphs
+const PREFIX_ALPHABET_LAST = 48; # == strlen(ALPHABET) - 1
+const PREFIX_LENGTH = 2; # 49**2 = 2_401 < 10_000 subfolders per folder (rough estimate)
+
+/** Moves the uploaded file to storage. This is the application's main function.
+ * 
+ * NB The file is deleted by PHP if it is not moved to storage cf. [php manual](https://www.php.net/manual/en/features.file-upload.post-method.php).
+ * 
+ * Function outline:
+ * - Check that the file is valid
+ * - Choose the filename
+ * - Prepare destination folder
+ * - Move the file to it
+ * - Return the stored file path
+ * 
+ * `$flags` array keys:
+
+ * 
+ * @param array $file The uploaded file as a single file $_FILES array
+ * @param array $flags (optional) Function options. Keys:
+ *                     - `random => Bool`: Generate a random filename 
+ *                     - `name => Str`: Use this filename
+ * @return string Filepath relative to files folder
+ * @throws UploadError if the upload failed
+ * @throws FileTooBig if the uploaded file exceeds limits
+ * @throws EmptyFile if the uploaded file is empty
+ * @throws BadFileExtension if the file extension is invalid
+ * @throws FilenameCollision if it fails to create a unique filename
+ * @throws SaveFail if the file failed to be saved
+ */
+function save_file (array $file, array $flags = array()) : string {
+	check_file($file); # => UploadError | FileTooBig | EmptyFile
 	
-	$name = $file['name'] ?? ""; # File name supplied
-	if (strlen($flags['name'])) { $name = $flags['name']; }
-	$name = sanitize_name($name); # also truncates it
-	
+	# Prepare parameters
+	$name = $file['name'] ?? "";
+	if (strlen($flags['name'])) $name = $flags['name'];
+	$name = sanitize_name($name);
 	$gen_random = ($flags['random'] ?? False) || strlen($name) == 0;
-	
-	# Prepare filename generation
-	#:my (?string $fileext, string $suffix);
-	if ($gen_random) {
-		# Differentiate between no extension and empty extension
-		$fileext = pathinfo($name)['extension'] ?? null;
-		if (isset($fileext)) {
-			$fileext = shorten_name($fileext); # because same limits as filename
+
+	# Check the extension of the initial filename
+	check_extension($name); # => BadFileExtension
+
+	# Compute filename
+	if ($gen_random) { $filename = gen_random_name($name); }
+	else {
+		[$filename, $recheck_ext] = shorten_name($name);
+		var_dump($filename);
+		if ($recheck_ext) {
+			try { check_extension($name); } catch (BadFileExtension $e) {
+				$filename = gen_random_name(); # If all else fails, use random filename
+			}
 		}
-		$suffix = isset($fileext) ? ".$fileext" : "";
-	} else {
-		$name = shorten_name($name);
-		$fileext = pathinfo($name)['extension'] ?? null;
-		$suffix = "_$name";
-	}
-	# OK $fileext, $suffix
-	
-	# Deter people from uploading problematic files
-	# NB but they can just rename the file or supply a valid custom name
-	# NB This can fail if the filename is shortened to an invalid extension
-	if (isset($fileext) && !is_extension_allowed($fileext)) {
-		throw new BadFileExtension($fileext);
 	}
 	
-	# Generate filename
+	# Generate filepath
 	$fileroot = make_absolute(UWEH_FILES_PATH);
-	do {
-		$filename = gen_prefix() . $suffix;
-	} while (file_exists($fileroot.$filename));
-	
-	# Save file
-	$success = move_uploaded_file($file['tmp_name'], $fileroot.$filename);
-	if (!$success) {
-		throw new SaveFail($name);
+	$found = False;
+	for ($i = 0; $i < UWEH_PREFIX_MAX_TRIES; $i++) {
+		$subdir = gen_prefix();
+		$filepath = $subdir . '/' . $filename;
+		if ( $found = !file_exists($fileroot.$filepath) ) break;
 	}
+	if (!$found) throw new FilenameCollision($filename);
+
+	# Save file
+	if (!file_exists($fileroot.$subdir)) mkdir($fileroot.$subdir); # ignore error
+	if (move_uploaded_file($file['tmp_name'], $fileroot.$filepath)) return $filepath;
 	
-	return $filename;
+	# Try again because there may be a race condition where the request is made at the same time
+	# as the cleanup job (unlikely)  which deletes the empty directory after it is created,
+	# but before the file is moved into it (rare).
+	clearstatcache();
+	if (!file_exists($fileroot.$subdir)) {
+		mkdir($fileroot.$subdir); # ignore error
+		if (move_uploaded_file($file['tmp_name'], $fileroot.$filepath)) return $filepath;
+	}
+
+	throw new SaveFail($filepath);
 }
 
-/* Actions */
-
-function get_download_url (string $filename) {
-	return UWEH_DOWNLOAD_URL.rawurlencode($filename);
+/** Get download URL from `save_file`'s filepath */
+function get_download_url (string $filepath) : string {
+	$encoded = implode("/", array_map("rawurlencode", explode("/", $filepath)));
+	return UWEH_DOWNLOAD_URL.$encoded;
 }
 
-function get_pretty_download_url (string $filename) {	
-	return UWEH_DOWNLOAD_URL.pretty_urlencode($filename);
-}
-
-# Try to run poor man's cron cleanup job based on the configuration
-# Returns whether it ran the cleanup job
-function poor_mans_cron_cleanup () {
+/** Try to run poor man's cron cleanup job based on the configuration
+ * 
+ * @return bool whether it ran the cleanup job
+ */
+function poor_mans_cron_cleanup () : bool {
 	$ran_cleanup = False;
 	if (POOR_MAN_CRON_INTERVAL) {
 		$mydir = dirname(__FILE__);
 		$previous = file_get_contents($mydir."/lastrun.txt");
 		if (!$previous || time() - $previous >= POOR_MAN_CRON_INTERVAL * 60) {
-			$ran_cleanup = True;
-			exec("sh \"$mydir/clean_files.sh\"");
+			# Minimize race window for two scripts to run the cleanup at the same time
 			file_put_contents($mydir."/lastrun.txt", time());
+			exec("sh \"$mydir/clean_files.sh\"");
+			$ran_cleanup = True;
 		}
 	}
 	return $ran_cleanup;
 }
 
-/* Error handling */
+/* Helper functions */
 
-# cf. https://www.php.net/manual/en/features.file-upload.errors.php
-class FileException extends Exception {
-	public /*int*/ $error_code;
-	function __construct (int $error_code) {
-		parent::__construct("Uploaded file errored with code $error_code");
-		$this->error_code = $error_code;
-	}
-}
-
-class BadFileExtension extends Exception {
-	public /*string*/ $extension;
-	function __construct (string $extension) {
-		parent::__construct("Bad file extension '$extension'");
-		$this->extension = $extension;
-	}
-}
-
-class SaveFail extends Exception {
-	public /*string*/ $filename; # User-supplied
-	function __construct (string $filename) {
-		parent::__construct("Failed to save file '$filename'");
-		$this->filename = $filename;
-	}
-}
-
-# Check file size and error code
-# … → () throws Uweh\FileException
-function check_file (array $file) {
+/** Check if the file has been uploaded successfully, is not empty, and doesn't exceed size limit
+ * 
+ * @param array $file Single file $_FILES array
+ * @throws UploadError
+ * @throws FileTooBig
+ * @throws EmptyFile
+ */
+function check_file (array $file) : void {
 	$error = $file['error'];
-	# Check file size
-	if (!$error && $file['size'] > UWEH_MAX_FILESIZE) {
-		$error = UPLOAD_ERR_FORM_SIZE;
-	}
-	if ($error) {
-		throw new FileException($error);
+	if ($error !== 0 && $error !== UPLOAD_ERR_FORM_SIZE)
+		throw new UploadError($error);
+	if ($error === UPLOAD_ERR_FORM_SIZE || $file['size'] > UWEH_MAX_FILESIZE)
+		throw new FileTooBig($file['size']);
+	if ($file['size'] === 0)
+		throw new EmptyFile();
+}
+
+/** Check if the filename's extension is allowed
+ * 
+ * @throws BadFileExtension
+ */
+function check_extension (string $filename) : void {
+	# Distinguish between no extension (null) and an empty extension ("")
+	$fileext = pathinfo($filename)['extension'] ?? null;
+	if (!is_null($fileext) && !is_extension_allowed($fileext)) {
+		throw new BadFileExtension($fileext);
 	}
 }
 
-/* Input sanitizing */
-
-# Remove invalid characters from a filename
-function sanitize_name (string $name) {
-	# NB this may modify the extension
-	# CHECKME A bit arbitrary cf. \
-	return str_replace(array("\0", "/", "\\"), "", $name);
+/** Returns if the file extension is allowed
+ * 
+ * We check the lowercased extension.
+*/
+function is_extension_allowed (string $ext) : bool {
+	$ext = strtolower($ext);
+	if (UWEH_EXTENSION_FILTERING_MODE === 'BLOCKLIST') {
+		return !in_array($ext, UWEH_EXTENSION_BLOCKLIST);
+	} else if (UWEH_EXTENSION_FILTERING_MODE === 'GRANTLIST') {
+		return in_array($ext, UWEH_EXTENSION_GRANTLIST);
+	} else if (UWEH_EXTENSION_FILTERING_MODE === 'NONE') {
+		return True;
+	} else { // Default to 'BLOCKLIST' behaviour
+		return !in_array($ext, UWEH_EXTENSION_BLOCKLIST);
+	}
 }
 
-# Truncate the string
-function shorten_name (string $s) {
-	if (strlen($s) <= UWEH_LONGEST_FILENAME) {
-		return $s;
+/** Remove characters forbidden by the filesystem from the user's filename */
+function sanitize_name (string $name) : string {
+	return str_replace(["\0", "/", "\\"], "", $name);
+}
+
+/** Shorten the filename with heuristics on what to remove
+ * 
+ * In order, it tries to shorten:
+ * - The string up to the first dot
+ * - The string up to the last dot
+ * - The whole string (in which case you should recheck the extension)
+ * 
+ * Calls the mbstring function if it is available, because we don't want to have invalid UTF-8 filenames
+ * even if it is allowed.
+ * 
+ * @return array [$filename, $recheck_ext] The truncated filename, and if the extension might have changed
+ */
+function shorten_name (string $s) : array {
+	$len = strlen($s);
+	if ($len <= UWEH_LONGEST_FILENAME) {
+		return [ $s, False ];
 	}
+
+	# Truncation function
 	if (function_exists('mb_strcut')) {
-		return mb_strcut($s, 0, UWEH_LONGEST_FILENAME, 'UTF-8'); # mb_* is slower, but correct
+		$strcut = function ($s, $pos) { return mb_strcut($s, 0, $pos, 'UTF-8'); };
 	} else {
-		return substr($s, 0, UWEH_LONGEST_FILENAME);
+		$strcut = function ($s, $pos) { return substr($s, 0, $pos); };
 	}
+
+	var_dump($s);
+
+	# If strpos returns false (thus strrpos as well), $i numifies to 0 so both ($cut > 0) will be false
+	$i = strpos($s, '.');
+	$cut = UWEH_LONGEST_FILENAME - ($len - $i); # prefix length
+	if ($cut > 0) return [ strcut($s, $cut) . substr($s, $i), False ];
+
+	$i = strrpos($s, '.');
+	$cut = UWEH_LONGEST_FILENAME - ($len - $i);
+	if ($cut > 0) return [ $strcut($s, $cut) . substr($s, $i), False ];
+
+	var_dump($strcut("abc", 1));
+
+	# Default to blindly cutting
+	return [ $strcut($s, UWEH_LONGEST_FILENAME), True ];
 }
 
-/* Logic */
-
-# Generates the random file prefix
-function gen_prefix () {
-	$chars = 'abdefghjknopqstuvxyzABCDEFHJKLMNPQRSTUVWXYZ345679'; # Removed homoglyphs
+/** Generates a valid random filename and tries to keep the original extension
+ * 
+ * In order, it:
+ * - Keeps the extension after the first dot
+ * - Keeps the extension after the last dot
+ * - Drops the extension
+ * 
+ * If there is no original filename, it generates a random filename without an extension.
+ * 
+ * @param string $name The original filename
+ */
+function gen_random_name (string $orig = "") : string {
 	$name = '';
-	for ($i = 0; $i < UWEH_PREFIX_LENGTH; $i++) {
-		$name .= $chars[mt_rand(0, 48)];
+	for ($i = 0; $i < UWEH_RANDOM_FILENAME_LENGTH; $i++) {
+		$name .= PREFIX_ALPHABET[mt_rand(0, PREFIX_ALPHABET_LAST)];
+	}
+
+	$len = strlen($orig);
+	$max_ext = UWEH_LONGEST_FILENAME - UWEH_RANDOM_FILENAME_LENGTH;
+
+	$i = strpos($orig, '.');
+	if (is_int($i)) { # The original filename contains a dot
+		if ($len - $i <= $max_ext) return $name . substr($orig, $i);
+
+		$i = strrpos($orig, '.');
+		if ($len - $i <= $max_ext) return $name . substr($orig, $i);
 	}
 	return $name;
 }
 
-# Tests if the file extension is allowed
-function is_extension_allowed (string $ext) {
-	$ext = strtolower($ext);
-	if (UWEH_EXTENSION_FILTERING_MODE === 'BLOCKLIST') {
-		return !in_array($ext, UWEH_EXTENSION_BLOCKLIST);
+/** Generates a random prefix
+ * 
+ * The length is set by `PREFIX_LENGTH` and the alphabet depends
+ * on `PREFIX_ALPHABET` and `PREFIX_ALPHABET_LAST`.
+ */
+function gen_prefix () : string {
+	$name = '';
+	for ($i = 0; $i < PREFIX_LENGTH; $i++) {
+		$name .= PREFIX_ALPHABET[mt_rand(0, PREFIX_ALPHABET_LAST)];
 	}
-	else if (UWEH_EXTENSION_FILTERING_MODE === 'GRANTLIST') {
-		return in_array($ext, UWEH_EXTENSION_GRANTLIST);
-	} 
-	else if (UWEH_EXTENSION_FILTERING_MODE === 'NONE'){
-		return True;
-	} else {
-		return True; # TODO Warn ?
-	}
+	return $name;
 }
 
-# Encode only the reserved symbols, might not work
-function pretty_urlencode (string $s) {
-	$raw = array('!', '#', '$', '%', '&', '\'', '(', ')', '*', '+', ',', '/', ':', ';', '=', '?', '@', '[', ']');
-	$encoded = array('%21', '%23', '%24', '%25', '%26', '%27', '%28', '%29', '%2A', '%2B', '%2C', '%2F', '%3A', '%3B', '%3D', '%3F', '%40', '%5B', '%5D');
-	
-	return str_replace($raw, $encoded, $s);
-}
-
-# Turns a path relative to the repo root into an absolute path
-function make_absolute (string $p) {
+/** Turns a path relative to the repo root into an absolute path
+ * 
+ * @param string $p The path, relative or absolute
+ */
+function make_absolute (string $p) : string {
 	if (strlen($p) && $p[0] !== '/') {
 		return  dirname(__FILE__, 2) . "/" . $p;
 	} else {
@@ -189,70 +262,132 @@ function make_absolute (string $p) {
 	}
 }
 
-/* Utilities */
+/* Error handling */
 
-# Tests if a $*FILES[$name] array is a single file (and not multiple)
-function is_single_file (array $file) {
-	return is_int($file['size']);
-}
-
-# Error codes for error_category
-class Error {
-	const SOME_ERROR   = -1; # Generic error
-	const TOO_LARGE	= 1; # File too large
-	const NO_FILE	  = 2; # No file uploaded (correctly)
-	const SERVER_ERROR = 3; # Server error (IO generally)
-	const BAD_FILE	 = 4; # File not approved
-}
-
-function error_category ($e) {
-	if ($e instanceof FileException) {
-		switch ($e->error_code) {
-		case 1:
-		case 2:
-			return Error::TOO_LARGE; break;
-		case 3:
-		case 4:
-			return Error::NO_FILE; break;
-		case 6:
-		case 7:
-			return Error::SERVER_ERROR; break;
-		case 8:
-		default:
-			return Error::SOME_ERROR;
-		}
-	} else if ($e instanceof SaveFail) {
-		return Error::SERVER_ERROR;
-	} else if ($e instanceof BadFileExtension) {
-		return Error::BAD_FILE;
-	} else {
-		return Error::SOME_ERROR;
+/** Wraps UPLOAD_ERR_* excluding file size error
+ * 
+ * cf. <https://www.php.net/manual/en/features.file-upload.errors.php>
+ */
+class UploadError extends Exception {
+	public int $error_code;
+	function __construct (int $error_code) {
+		parent::__construct("File upload failed with error code $error_code");
+		$this->error_code = $error_code;
 	}
 }
 
-# Convert a number of bytes into a human readable format
-# integer part < 1024, 1 decimal figure
-function human_bytes (int $n) {
-	$units = array("bytes", "kB", "MB", "GB", "TB");
-	$i = 0;
-	for ($i = 0; $i < 4; $i++) {
+/** The uploaded file exceeds UWEH_MAX_FILESIZE */
+class FileTooBig extends Exception {
+	public int $size; # In bytes
+	function __construct (int $size) {
+		parent::__construct("Uploaded file exceeds UWEH_MAX_FILESIZE");
+		$this->size = $size;
+	}
+}
+
+/** The uploaded file is empty */
+class EmptyFile extends Exception {
+	function __construct () {
+		parent::__construct("Uploaded file cannot be empty");
+	}
+}
+
+/** The uploaded file's extension is not allowed by Uweh */
+class BadFileExtension extends Exception {
+	public string $extension;
+	function __construct (string $extension) {
+		parent::__construct("Uploaded file extension '$extension' is not allowed");
+		$this->extension = $extension;
+	}
+}
+
+/** Filename collided too many times */
+class FilenameCollision extends Exception {
+	public string $filename;
+	function __construct (string $filename) {
+		parent::__construct("Filename '$filename' collided more than UWEH_PREFIX_MAX_TRIES times");
+		$this->filename = $filename;
+	}
+}
+
+/** The server failed to save the file */
+class SaveFail extends Exception {
+	public string $path;
+	function __construct (string $filepath) {
+		parent::__construct("Failed to save file to '$filepath'");
+		$this->path = $filepath;
+	}
+}
+
+/* Utilities */
+
+/** Tests if a $_FILES array is a single file (and not multiple) */
+function is_single_file (array $file) : bool {
+	return is_int($file['size']);
+}
+
+/** Abstraction over Uweh business exceptions */
+class Error {
+	const SOME_ERROR   = -1; # Generic error
+	const BAD_FILE     = 1; # File too large
+	const UPLOAD_FAIL  = 2; # No file uploaded (correctly)
+	const SERVER_ERROR = 3; # Server error (IO generally)
+
+	/** Categorize the exception into one of the Error constants */
+	public function categorize (Exception $e) : int {
+		if ($e instanceof UploadError) {
+			switch ($e->error_code) {
+				case UPLOAD_ERR_INI_SIZE:
+				case UPLOAD_ERR_NO_TMP_DIR:
+				case UPLOAD_ERR_CANT_WRITE:
+				case UPLOAD_ERR_EXTENSION:
+					return self::SERVER_ERROR; break;
+				case UPLOAD_ERR_FORM_SIZE:
+					return self::BAD_FILE; break;
+				case UPLOAD_ERR_PARTIAL:
+				case UPLOAD_ERR_NO_FILE:
+					return self::UPLOAD_FAIL; break;
+				default:
+					return self::SOME_ERROR;
+			}
+		} else if ($e instanceof FileTooBig || $e instanceof EmptyFile || $e instanceof EmptyFile || $e instanceof BadFileExtension) {
+			return self::BAD_FILE;
+		} else if ($e instanceof FilenameCollision) {
+			return self::SOME_ERROR;
+		} else if ($e instanceof SaveFail) {
+			return self::SERVER_ERROR;
+		} else {
+			return self::SOME_ERROR;
+		}
+	}
+}
+
+/** Convert a number of bytes into a human readable format (kB, GB, …)
+ * 
+ * Uses base 1024 and rounds down the result to 1 decimal place.
+ */
+function human_bytes (int $n) : string {
+	$units = ["B", "kB", "MB", "GB", "TB"];
+	for ($i = 0; $i < count($units); $i++) {
 		if ($n < 1024) {
 			break;
 		} else {
 			$n /= 1024;
 		}
 	}
-	$n10 = floor($n * 10) / 10; # Truncate to 1 decimal place
-	return $n . ' ' . $units[$i];
+	$n = floor($n * 10) / 10; # Truncate to 1 decimal place
+	return $n . $units[$i];
 }
 
-/* From https://stackoverflow.com/a/4412766/5226686 */
-# Takes the ceiling at 2 decimal places
-function timer () {
+/** Flip flop timer that rounds to 2 decimal places.
+ * 
+ * From <https://stackoverflow.com/a/4412766/5226686>
+ */
+function timer () : ?float {
 	static $start;
-
 	if (is_null($start)) {
 		$start = microtime(true);
+		return null;
 	} else {
 		$diff = ceil((microtime(true) - $start) * 100) / 100;
 		$start = null;

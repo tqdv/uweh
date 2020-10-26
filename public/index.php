@@ -11,15 +11,16 @@ Uweh\timer();
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="main.css">
 	<link rel="canonical" href="<?= UWEH_MAIN_URL ?>">
-	<meta name=description content="Share files up to <?= Uweh\human_bytes(UWEH_MAX_FILESIZE) ?> for <?= UWEH_MAX_RETENTION_TEXT ?>.">
+	<meta name=description content="Temporary file hosting. Share files up to <?= Uweh\human_bytes(UWEH_MAX_FILESIZE) ?> for <?= UWEH_MAX_RETENTION_TEXT ?>.">
 	<link rel="icon" type="image/png" href="favicon.png"/>
 	<!-- OpenGraph tags -->
 	<meta property="og:title" content="Uweh - Ephemeral file hosting">
 	<meta property="og:type" content="website">
 	<meta property="og:image" content="<?= UWEH_MAIN_URL . 'img/riamu.png' ?>">
 	<meta property="og:url" content="<?= UWEH_MAIN_URL ?>">
-	<meta property="og:description" content="Share files up to <?= Uweh\human_bytes(UWEH_MAX_FILESIZE) ?> for <?= UWEH_MAX_RETENTION_TEXT ?>.">
+	<meta property="og:description" content="Temporary file hosting. Share files up to <?= Uweh\human_bytes(UWEH_MAX_FILESIZE) ?> for <?= UWEH_MAX_RETENTION_TEXT ?>.">
 	<meta property="og:locale" content="en_US" />
+	<script>0</script> <!-- Prevent FOUC in Firefox -->
 </head>
 <body>
 <main>
@@ -37,7 +38,7 @@ $file = $_FILES['file'] ?? null;
 if (isset($file)) {
 # Process file
 	if (! Uweh\is_single_file($file)) {
-		die("Multiple files ??"); # FIXME
+		fatal("Multiple files were uploaded");
 	}
 	
 	$name = $_POST['name'] ?? "";
@@ -45,33 +46,27 @@ if (isset($file)) {
 	$random = isset($random) ? (bool) strlen($random) : False;
 	
 	try {
-		$filename = Uweh\process($file, array(
+		$filepath = Uweh\save_file($file, array(
 			"random" => $random,
 			"name" => $name,
 		));
 		
-		$download_url = Uweh\get_download_url($filename);
-		$pretty_url = Uweh\get_pretty_download_url($filename);
+		$download_url = Uweh\get_download_url($filepath);
 		
-		echo "<p class=\"payload-msg\">Your download link is<br><a href=\"$download_url\">$pretty_url</a></p>";
-		if ($download_url !== $pretty_url) {
-			echo "<p class=\"payload-msg\">or <a href=\"$download_url\">$download_url</a></p>";
-		}
+		echo "<p class=\"payload-msg\">Your download link is<br><a href=\"$download_url\">$download_url</a></p>";
 	
 	} catch (Exception $e) {
-		switch (Uweh\error_category($e)) {
+		switch (Error::categorize($e)) {
 		case Error::SOME_ERROR:
 			fatal("An error occured"); break;
-		case Error::TOO_LARGE:
-			fatal("File is too large. Should be less than ".Uweh\human_bytes(UWEH_MAX_FILESIZE)."."); break;
-		case Error::NO_FILE:
-			fatal("No file was succesfully uploaded"); break;
+		case Error::BAD_FILE:
+			fatal("The file is rejected. It should be less than ".Uweh\human_bytes(UWEH_MAX_FILESIZE).", not empty and have an allowed extension."); break;
+		case Error::UPLOAD_FAIL:
+			fatal("The file upload failed"); break;
 		case Error::SERVER_ERROR:
 			fatal("Server error due to a misconfiguration or a full disk. Check back later."); break;
-		case Error::BAD_FILE:
-			fatal("File was rejected because its file extension is blocked"); break;
 		default:
-			fatal("An error occured");
+			fatal("An unknown error occured");
 		}
 	}
 	
@@ -110,11 +105,11 @@ if (isset($file)) {
 </main>
 <p><a href="about.php">About this website</a></p>
 
-<?php
-# Run cleanup job
-$ran_cleanup = Uweh\poor_mans_cron_cleanup();
-?>
-<p class="gen-line"><?= "Generated in ".Uweh\timer()."s with ".round(memory_get_peak_usage()/1048576, 2)."MB".($ran_cleanup ? ".": "") ?></p>
+<p class="gen-line"><?php
+	$ran_cleanup = Uweh\poor_mans_cron_cleanup(); # Run cleanup job if needed
+	$ram_in_mb = round(memory_get_peak_usage()/1048576, 2);
+	echo "Generated in ".Uweh\timer()."s with ".$ram_in_mb."MB by Uweh v".Uweh\VERSION.($ran_cleanup ? ".": "");
+?></p>
 
 </body>
 </html>

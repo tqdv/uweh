@@ -1,13 +1,15 @@
 # Uweh
 
-Ephemeral file hosting. An [Uguu](https://github.com/nokonoko/Uguu) clone.
+Ephemeral file hosting. An [Uguu](https://github.com/nokonoko/Uguu) clone before it switched to Pomf.
 
-Users upload files which are hosted for a set period of time until they get deleted.
+Users can upload files which are hosted for a set period of time before they are removed.
+
+Changelog: See [CHANGELOG.md](CHANGELOG.md).
 
 ## Installation
 
 Requirements:
-* PHP version >= 7.0 (because of `??`, `define(…, array(…))`)
+* PHP version >= 7.1 (because of `??`, `define(…, array(…))`, `function (…) : ?type` )
 * Perl, a shell and the find command (for the cleanup script)
 * Optional: php-mbstring if you want to truncate a filename correctly
 
@@ -20,7 +22,6 @@ Deployment steps:
   ```
 - Make sure that filesize limits in php.ini (`upload_max_filesize`), and your webserver (`client_max_body_size` for nginx, `LimitRequestBody` for Apache) are larger than `UWEH_MAX_FILESIZE`.
 - Open `status.php` in your browser and check that everything is in order. Then delete or rename it for security.
-- Optional: Create a virtual filesystem and mount it at `/public/files` to limit disk usage (cf. [AskUbuntu question](https://askubuntu.com/questions/841282/how-to-set-a-file-size-limit-for-a-directory))
 - Customization
   - Customize the About page, especially the contact email.
   - Customize the html title in both `index.php` and `about.php`.
@@ -32,27 +33,35 @@ This project is a rewrite or clone of nokonoko/Uguu, so it is also licensed unde
 
 ## Developer notes
 
+### Context
+
+List of rules I imposed on myself:
+- No database
+- No external php libraries
+- Single library file
+- Most things should be documented
+- Downloading is only handled by the webserver
+- User downloads the file with the right filename
+- User should not be able to guess a file URL
+
 ### Overview
 
 `index.php` mostly handles the HTML, and some argument preprocessing. It hands off
-the processing to `Uweh\process(…)`.
+the processing to `Uweh\save_file(…)` which is the main function.
+
+### TODO
+
+- Early failure if the extension is invalid
 
 ### Caveats
 
-- It would be nice to strip off the random prefix when serving the file by setting the `Content-Disposition` header, but I couldn't find a way to do that nicely in the webserver.
+- There is no upload progress bar
+- File rejection only happens after the file has been completely uploaded.
+- File size is limited by webserver limits.
 
-### Notes
+### Notes and ideas
 
-* We check the filename as it is saved on the server.
-* Empty files are allowed so one could make us run out of inodes by uploading very small files.
-* With a 12 character prefix, you need at least 1.9e12 uploaded files to get a 1% probability of at least generating a name thrice.
-* If a filename has an underscore, it has a user-submitted name.
-* Generated filename grammar:
-  ```raku
-  regex rand-char { <{"abdefghjknopqstuvxyzABCDEFHJKLMNPQRSTUVWXYZ345679".comb}> }
-  regex file-char { <-[ \0 \/ \\ ]> }
-  regex filename {
-      | <rand-char> ** 12 [ "." <file-char>* ]?
-      | <chars> ** 12 "_" <file-char>+
-  }
-  ```
+* Double quotes, backslashes and newlines are not allowed in the file folder pathname (cf. `clean_files.sh` FILE_ROOT regex).
+* You need a case-sensitive filesystem
+* There may be a race condition where two users upload the same filename (uncommon) at the same time (unlikely) and generate the same filepath (rare) which overwrites the other one. This is not handled.
+* You could create a virtual filesystem and mount it at `/public/files` to limit disk usage (cf. [AskUbuntu question](https://askubuntu.com/questions/841282/how-to-set-a-file-size-limit-for-a-directory))

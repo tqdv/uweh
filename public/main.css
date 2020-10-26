@@ -3,6 +3,8 @@
 	--highlight-color: #FFF;
 	--select-color: #AAA;
 	--border-line: 1px solid #CCC;
+	--background-color-almost-white: #faf6f6;
+	--background-image-url: url("img/riamu.png");
 }
 
 html {
@@ -20,14 +22,17 @@ body {
 	min-height: 100vh;
 	/* padding: 0; */
 	
-	background-image: url("img/riamu.png");
+	background-color: var(--background-color-almost-white);
+	background-image: var(--background-image-url);
 	background-repeat: no-repeat;
 	background-position: bottom left;
 }
 
 main {
 	min-width: 20rem;
-	margin: 0 1ch;
+	margin: 3em 1ch;
+	padding: 1em;
+	box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 	background-color: #FEFEFEBB;
 }
 
@@ -38,7 +43,7 @@ p {
 
 h1 {
 	font-size: 4rem;
-	margin-bottom: 0;
+	margin: 0.5ex auto 0;
 }
 #explanation {
 	margin-top: 0;
@@ -56,7 +61,7 @@ h1 {
 }
 
 .payload-msg {
-	margin-top: 3rem;
+	margin: 3rem 1rem 1rem;
 	padding: 1rem;
 	font-size: 1.4rem;
 	text-align: center;
@@ -72,7 +77,7 @@ h1 {
 	border-radius: 0.5rem;
 }
 
-/* The form */
+/* The upload form */
 
 #upload-form {
 	display: flex;
@@ -148,9 +153,6 @@ h1 {
 	padding-left: 4ch;
 	line-height: 1.8em;
 }
-
-/* TODO Make checkbox bigger ? */
-#random-check {}
 
 #name-input {
 	padding: 0.5ex 0.5ch;
