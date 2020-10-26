@@ -83,7 +83,7 @@ if (isset($file)) {
 				<label for="file-input" class="no-click">Select file to upload: </label><br>
 				<input type="file" id="file-input" name="file" required>
 			</span>
-			<button type="submit" class="upload-btn">Upload file</button>
+			<button type="submit" id="upload-btn">Upload file</button>
 		</div>
 		
 		<div id="upload-options">
@@ -110,6 +110,51 @@ if (isset($file)) {
 	$ram_in_mb = round(memory_get_peak_usage()/1048576, 2);
 	echo "Generated in ".Uweh\timer()."s with ".$ram_in_mb."MB by Uweh v".Uweh\VERSION.($ran_cleanup ? ".": "");
 ?></p>
+
+<script>
+(function () {
+
+let file_input = document.getElementById('file-input');
+let upload_btn = document.getElementById('upload-btn');
+
+function is_extension_allowed(file) {
+	let i = file.name.lastIndexOf('.');
+	let ext = file.name.substring(i + 1); // If i == -1, then it still works
+	
+	return <?php
+		if (UWEH_EXTENSION_FILTERING_MODE === 'GRANTLIST') {
+			$extlist = '"'.implode(',', UWEH_EXTENSION_GRANTLIST).'"';
+			echo "${extlist}.split(',').includes(ext)";
+		} else if (UWEH_EXTENSION_FILTERING_MODE === 'NONE') {
+			echo "True";
+		} else { # if (UWEH_EXTENSION_FILTERING_MODE === 'BLOCKLIST')
+			$extlist = '"'.implode(',', UWEH_EXTENSION_BLOCKLIST).'"';
+			echo "! ${extlist}.split(',').includes(ext)";
+		}
+	?>;
+}
+
+function valid_file_size (file) {
+	return 0 < file.size && file.size <= <?= UWEH_MAX_FILESIZE ?>;
+}
+
+function check_file_input (file_input) {
+	let invalid_file = Array.from(file_input.files).some((v) => !(is_extension_allowed(v) && valid_file_size(v)));
+	if (invalid_file) {
+		file_input.classList.add('invalid-file');
+		upload_btn.setAttribute('disabled', '');
+	} else {
+		file_input.classList.remove('invalid-file');
+		upload_btn.removeAttribute('disabled');
+	}
+}
+
+// Selecting an invalid file disables the upload and highlights the input in red
+file_input.addEventListener('change', e => check_file_input(e.target));
+check_file_input(file_input);
+
+})();
+</script>
 
 </body>
 </html>

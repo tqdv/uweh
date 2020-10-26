@@ -49,14 +49,18 @@ List of rules I imposed on myself:
 `index.php` mostly handles the HTML, and some argument preprocessing. It hands off
 the processing to `Uweh\save_file(…)` which is the main function.
 
+The file expiration is handled by the cleanup script `./src/clean_files.sh` which reads the configuration file. 
+
+Uweh creates a lot of 2-letter subfolders in the files directory: this is to prevent filename collision.
+The uploaded files are then stored in one of those folders.
+
 ### TODO
 
-- Early failure if the extension is invalid
+- Display a warning message if the user selects a file that will be rejected (in addition to the red outline around the input field).
 
 ### Caveats
 
 - There is no upload progress bar
-- File rejection only happens after the file has been completely uploaded.
 - File size is limited by webserver limits.
 
 ### Notes and ideas

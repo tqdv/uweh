@@ -37,7 +37,7 @@ define("UWEH_PREFIX_MAX_TRIES", 7);
 # Set to NONE if you want to disable filtering
 define("UWEH_EXTENSION_FILTERING_MODE", "BLOCKLIST");
 # Each extension should be lowercase. Note that '.htaccess' has an extension of 'htaccess'.
-define("UWEH_EXTENSION_BLOCKLIST", array("exe", "scr", "rar", "zip", "com", "vbs", "bat", "cmd", "html", "htm", "msi", "php", "php5, htaccess"));
+define("UWEH_EXTENSION_BLOCKLIST", array("exe", "scr", "rar", "zip", "com", "vbs", "bat", "cmd", "html", "htm", "msi", "php", "php5", "htaccess"));
 define("UWEH_EXTENSION_GRANTLIST", array("txt", "pdf"));
 
 # If you can't run the cleanup script with a cron job, set this to the

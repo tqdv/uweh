@@ -137,7 +137,7 @@ function check_file (array $file) : void {
  */
 function check_extension (string $filename) : void {
 	# Distinguish between no extension (null) and an empty extension ("")
-	$fileext = pathinfo($filename)['extension'] ?? null;
+	$fileext = pathinfo($filename)['extension'] ?? $filename;
 	if (!is_null($fileext) && !is_extension_allowed($fileext)) {
 		throw new BadFileExtension($fileext);
 	}

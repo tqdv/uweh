@@ -34,9 +34,17 @@
 # Change directory to repo root
 cd "$(dirname "$0")" && cd .. || exit 1
 
+# Check config file
+CONFIG_FILE="src/config.php"
+if ! { [ -f "$CONFIG_FILE" ] && [ -r "$CONFIG_FILE" ]; }
+then
+	echo "Configuration file can't be read";
+	exit 1;
+fi
+
 # Grab relevant variables from src/config.php
-FILE_ROOT=$( perl -ne 'print $1 if /UWEH_FILES_PATH"\s*,\s*"([^"]+)"/' src/config.php )
-MIN_AGE=$( perl -ne 'print eval $1 if /UWEH_MAX_RETENTION_TIME"\s*,\s*([0-9_]+)/' src/config.php )
+FILE_ROOT=$( perl -ne 'print $1 if /UWEH_FILES_PATH"\s*,\s*"([^"]+)"/' "$CONFIG_FILE" )
+MIN_AGE=$( perl -ne 'print eval $1 if /UWEH_MAX_RETENTION_TIME"\s*,\s*([0-9_]+)/' "$CONFIG_FILE" )
 # ^ The underscore in the character class allows for underscores in PHP number literals,
 #   which is then processed correctly by perl's eval
 
@@ -49,8 +57,11 @@ if [ -n "$1" ]; then
 	exit 0
 fi
 
-# Silently exit if we couldn't get configuration
-{ [ -z "$FILE_ROOT" ] || [ -z "$MIN_AGE" ]; } && exit 1
+# Check configuration variables
+if ! { [ -z "$FILE_ROOT" ] || [ -z "$MIN_AGE" ]; } {
+	echo "Couldn't find configuration in configuration file";
+	exit 1;
+}
 
 # Delete files and empty folders
 find "$FILE_ROOT" -mindepth 1 -type f -mmin +"$MIN_AGE" -exec rm -f '{}' \; || exit 2
