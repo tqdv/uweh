@@ -15,17 +15,13 @@ Requirements:
 
 Deployment steps:
 - Copy `src/config.template.php` to `src/config.php` and customize it to your liking. 
-- Configure the web server to serve php files (`/public/`) and the uploaded files (eg. `/public/files/`). Make sure to disable php execution in the files directory or use a subdomain to be certain.
+- Configure the web server to serve php files and the uploaded files. Make sure to disable php execution in the files directory or use a subdomain to be certain.
 - Add the file cleaning job to your crontab:
   ```cron
-  0,15,30,45 * * * * sh /path/to/uweh/src/clean_files.sh
+  0,15,30,45 * * * * sh /path/to/uweh/src/clean_files.sh >/dev/null 2>&1 
   ```
 - Make sure that filesize limits in php.ini (`upload_max_filesize`), and your webserver (`client_max_body_size` for nginx, `LimitRequestBody` for Apache) are larger than `UWEH_MAX_FILESIZE`.
 - Open `status.php` in your browser and check that everything is in order. Then delete or rename it for security.
-- Customization
-  - Customize the About page, especially the contact email.
-  - Customize the html title in both `index.php` and `about.php`.
-  - Upload a background image at `/img/riamu.png` and a favicon at `/favicon.png`
 
 ## License
 
@@ -57,7 +53,6 @@ The uploaded files are then stored in one of those folders.
 ### TODO
 
 - Display a warning message if the user selects a file that will be rejected (in addition to the red outline around the input field).
-- Rewrite config template to have better documentation
 
 ### Caveats
 

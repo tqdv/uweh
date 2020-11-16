@@ -13,13 +13,13 @@ Uweh\timer();
 	<link rel="canonical" href="<?= UWEH_MAIN_URL ?>">
 	<meta name=description content="Temporary file hosting. Share files up to <?= Uweh\human_bytes(UWEH_MAX_FILESIZE) ?> for <?= UWEH_MAX_RETENTION_TEXT ?>.">
 	<!-- Favicons -->
-	<link rel="icon" type="image/png" sizes="32x32" href="<?= UWEH_MAIN_URL . '/favicon-32.png' ?>">
-	<link rel="icon" type="image/png" sizes="16x16" href="<?= UWEH_MAIN_URL . '/favicon-16.png' ?>">
-	<link rel="icon" type="image/png" sizes="196x196" href="<?= UWEH_MAIN_URL . '/favicon-196.png' ?>">
+	<link rel="icon" type="image/png" sizes="32x32" href="<?= UWEH_MAIN_URL.'favicon-32.png' ?>">
+	<link rel="icon" type="image/png" sizes="16x16" href="<?= UWEH_MAIN_URL.'favicon-16.png' ?>">
+	<link rel="icon" type="image/png" sizes="196x196" href="<?= UWEH_MAIN_URL.'favicon-196.png' ?>">
 	<!-- OpenGraph tags -->
 	<meta property="og:title" content="Uweh - Ephemeral file hosting">
 	<meta property="og:type" content="website">
-	<meta property="og:image" content="<?= UWEH_MAIN_URL . 'img/riamu.png' ?>">
+	<meta property="og:image" content="<?= UWEH_MAIN_URL.'riamu.png' ?>">
 	<meta property="og:url" content="<?= UWEH_MAIN_URL ?>">
 	<meta property="og:description" content="Temporary file hosting. Share files up to <?= Uweh\human_bytes(UWEH_MAX_FILESIZE) ?> for <?= UWEH_MAX_RETENTION_TEXT ?>.">
 	<meta property="og:locale" content="en_US" />
@@ -74,7 +74,7 @@ function process_file ($file) {
 	}
 }
 
-function diplay_back_button () {
+function display_back_button () {
 	?>
 	<div class="button-ctn"><a class="upload-btn not-a-link" href="<?= UWEH_MAIN_URL ?>">Go back</a><div>';
 	<?php
