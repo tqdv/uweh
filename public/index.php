@@ -12,7 +12,10 @@ Uweh\timer();
 	<link rel="stylesheet" href="main.css">
 	<link rel="canonical" href="<?= UWEH_MAIN_URL ?>">
 	<meta name=description content="Temporary file hosting. Share files up to <?= Uweh\human_bytes(UWEH_MAX_FILESIZE) ?> for <?= UWEH_MAX_RETENTION_TEXT ?>.">
-	<link rel="icon" type="image/png" href="favicon.png"/>
+	<!-- Favicons -->
+	<link rel="icon" type="image/png" sizes="32x32" href="<?= UWEH_MAIN_URL . '/favicon-32.png' ?>">
+	<link rel="icon" type="image/png" sizes="16x16" href="<?= UWEH_MAIN_URL . '/favicon-16.png' ?>">
+	<link rel="icon" type="image/png" sizes="196x196" href="<?= UWEH_MAIN_URL . '/favicon-196.png' ?>">
 	<!-- OpenGraph tags -->
 	<meta property="og:title" content="Uweh - Ephemeral file hosting">
 	<meta property="og:type" content="website">
@@ -20,7 +23,6 @@ Uweh\timer();
 	<meta property="og:url" content="<?= UWEH_MAIN_URL ?>">
 	<meta property="og:description" content="Temporary file hosting. Share files up to <?= Uweh\human_bytes(UWEH_MAX_FILESIZE) ?> for <?= UWEH_MAX_RETENTION_TEXT ?>.">
 	<meta property="og:locale" content="en_US" />
-	<script>0</script> <!-- Prevent FOUC in Firefox -->
 </head>
 <body>
 <main>
@@ -29,16 +31,17 @@ Uweh\timer();
 
 <?php
 use Uweh\Error;
+
+# Functions
+
 function fatal (string $msg) {
 	echo '<p class="payload-msg error-msg">Error: '.htmlspecialchars($msg).'</p>';
 }
 
-$file = $_FILES['file'] ?? null;
-
-if (isset($file)) {
-# Process file
+function process_file ($file) {
 	if (! Uweh\is_single_file($file)) {
 		fatal("Multiple files were uploaded");
+		return;
 	}
 	
 	$name = $_POST['name'] ?? "";
@@ -69,13 +72,34 @@ if (isset($file)) {
 			fatal("An unknown error occured");
 		}
 	}
-	
-	# Display back button
-	echo '<div class="button-ctn"><a class="upload-btn not-a-link" href="'.UWEH_MAIN_URL.'">Go back</a><div>';
+}
 
-} else {
-# Display form
-?>
+function diplay_back_button () {
+	?>
+	<div class="button-ctn"><a class="upload-btn not-a-link" href="<?= UWEH_MAIN_URL ?>">Go back</a><div>';
+	<?php
+}
+
+function display_about () {
+	?>
+	<h3>About</h3>
+
+	<p>Store files with a size up to <?= Uweh\human_bytes(UWEH_MAX_FILESIZE)?> for up to <?= UWEH_MAX_RETENTION_TEXT ?>.</p>
+	<p>Due to malicious files being uploaded, some filetypes are not allowed such as HTML or executables.</p>
+	<p>A programmatic API may be available at <?= UWEH_MAIN_URL."api.php" ?>.</p>
+
+	<h3>Content restrictions</h3>
+	<p>This website is not affiliated with the files users upload.</p>
+	<p>Child pornography and other illegal files are <strong>*not*</strong> allowed, please report offending files to <a href="mailto:<?= UWEH_ABUSE_EMAIL ?>"><?= UWEH_ABUSE_EMAIL ?></a> and they will be prompty deleted.</p>
+
+	<h3>Privacy</h3>
+
+	<p>The website may store anonymous page hit statistics. We won't store IP addresses nor the requested filename.</p>
+	<?php
+}
+
+function display_form () {
+	?>
 	<form id="upload-form" method="post" enctype="multipart/form-data">
 		<input type="hidden" name="MAX_FILE_SIZE" value="<?= UWEH_MAX_FILESIZE ?>">
 		<div id="upload-it">
@@ -98,63 +122,83 @@ if (isset($file)) {
 			</p>
 		</div>
 	</form>
-
-<?php
+	<?php
 }
+
+function display_form_script () {
+	?>
+	<script>
+	(function () {
+		let file_input = document.getElementById('file-input');
+		let upload_btn = document.getElementById('upload-btn');
+
+		function is_extension_allowed(file) {
+			let i = file.name.lastIndexOf('.');
+			let ext = file.name.substring(i + 1); // If i == -1, then it still works
+			
+			return <?php
+				if (UWEH_EXTENSION_FILTERING_MODE === 'GRANTLIST') {
+					$extlist = '"'.implode(',', UWEH_EXTENSION_GRANTLIST).'"';
+					echo "${extlist}.split(',').includes(ext)";
+				} else if (UWEH_EXTENSION_FILTERING_MODE === 'NONE') {
+					echo "True";
+				} else { # if (UWEH_EXTENSION_FILTERING_MODE === 'BLOCKLIST')
+					$extlist = '"'.implode(',', UWEH_EXTENSION_BLOCKLIST).'"';
+					echo "! ${extlist}.split(',').includes(ext)";
+				}
+			?>;
+		}
+
+		function valid_file_size (file) {
+			return 0 < file.size && file.size <= <?= UWEH_MAX_FILESIZE ?>;
+		}
+
+		function check_file_input (file_input) {
+			let invalid_file = Array.from(file_input.files).some((v) => !(is_extension_allowed(v) && valid_file_size(v)));
+			if (invalid_file) {
+				file_input.classList.add('invalid-file');
+				upload_btn.setAttribute('disabled', '');
+			} else {
+				file_input.classList.remove('invalid-file');
+				upload_btn.removeAttribute('disabled');
+			}
+		}
+
+		// Selecting an invalid file disables the upload and highlights the input in red
+		file_input.addEventListener('change', e => check_file_input(e.target));
+		check_file_input(file_input);
+	})();
+	</script>
+	<?php
+}
+
+# ---
+
+$file = $_FILES['file'] ?? null;
+$about = isset($_GET['about']);
+
+if (isset($file)) {
+	process_file($file);
+	display_back_button();
+} else if ($about) {
+	display_about();
+} else {
+	display_form();
+	display_form_script();
+}
+
 ?>
 </main>
-<p><a href="about.php">About this website</a></p>
+
+<?php if (!$about) {
+	echo '<p><a href="?about">About this website</a></p>';
+} ?>
 
 <p class="gen-line"><?php
 	$ran_cleanup = Uweh\poor_mans_cron_cleanup(); # Run cleanup job if needed
 	$ram_in_mb = round(memory_get_peak_usage()/1048576, 2);
 	echo "Generated in ".Uweh\timer()."s with ".$ram_in_mb."MB by Uweh v".Uweh\VERSION.($ran_cleanup ? ".": "");
 ?></p>
-
-<script>
-(function () {
-
-let file_input = document.getElementById('file-input');
-let upload_btn = document.getElementById('upload-btn');
-
-function is_extension_allowed(file) {
-	let i = file.name.lastIndexOf('.');
-	let ext = file.name.substring(i + 1); // If i == -1, then it still works
-	
-	return <?php
-		if (UWEH_EXTENSION_FILTERING_MODE === 'GRANTLIST') {
-			$extlist = '"'.implode(',', UWEH_EXTENSION_GRANTLIST).'"';
-			echo "${extlist}.split(',').includes(ext)";
-		} else if (UWEH_EXTENSION_FILTERING_MODE === 'NONE') {
-			echo "True";
-		} else { # if (UWEH_EXTENSION_FILTERING_MODE === 'BLOCKLIST')
-			$extlist = '"'.implode(',', UWEH_EXTENSION_BLOCKLIST).'"';
-			echo "! ${extlist}.split(',').includes(ext)";
-		}
-	?>;
-}
-
-function valid_file_size (file) {
-	return 0 < file.size && file.size <= <?= UWEH_MAX_FILESIZE ?>;
-}
-
-function check_file_input (file_input) {
-	let invalid_file = Array.from(file_input.files).some((v) => !(is_extension_allowed(v) && valid_file_size(v)));
-	if (invalid_file) {
-		file_input.classList.add('invalid-file');
-		upload_btn.setAttribute('disabled', '');
-	} else {
-		file_input.classList.remove('invalid-file');
-		upload_btn.removeAttribute('disabled');
-	}
-}
-
-// Selecting an invalid file disables the upload and highlights the input in red
-file_input.addEventListener('change', e => check_file_input(e.target));
-check_file_input(file_input);
-
-})();
-</script>
 
 </body>
 </html>

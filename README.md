@@ -57,6 +57,7 @@ The uploaded files are then stored in one of those folders.
 ### TODO
 
 - Display a warning message if the user selects a file that will be rejected (in addition to the red outline around the input field).
+- Rewrite config template to have better documentation
 
 ### Caveats
 

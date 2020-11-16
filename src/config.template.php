@@ -45,4 +45,4 @@ define("UWEH_EXTENSION_GRANTLIST", array("txt", "pdf"));
 # It is much preferable to use an actual cron job
 define("POOR_MAN_CRON_INTERVAL", 0);
 
-# Finally, you could customize the constants in Uweh.php at your risk and perils.
+# Finally, you could customize the constants in Uweh.php at your risks and perils.

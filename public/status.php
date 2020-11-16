@@ -24,6 +24,7 @@ function shorthand_to_bytes ($x) {
 	}
 }
 
+# Display an HTML table row of `| $desc | $data (with color based on $status) |`
 function row (string $desc, $data, $status = null) {
 	if (is_bool($status)) {
 		$status = $status ? "ok" : "fail";
@@ -42,8 +43,13 @@ function row (string $desc, $data, $status = null) {
 	echo "</tr>";
 }
 
+# Display the table section header of name $name
 function section (string $name) {
 	echo "<th colspan=2>$name</th>";
+}
+
+function exit_unless (bool $cond) {
+	if (!$cond) exit;
 }
 
 ?>
@@ -53,32 +59,33 @@ function section (string $name) {
 	<meta charset="utf-8">
 	<title>Uweh status</title>
 	<style>
-	table {
-		margin: auto;
-	}
-	th,td {
-		white-space: pre-line;
-		text-align: center;
-	}
-	
-	h1 {
-		text-align: center;
-	}
-	
-	.ok {
-		background-color: #8eec6c;
-	}
-	.fail {
-		background-color: #ff8f8f;
-	}
-	.meh {
-		background-color: #ffc253;
-	}
-	
-	.warning {
-		font-size: xx-large;
-		text-align: center;
-	}
+		/* Table style */
+		table {
+			margin: auto;
+		}
+		th,td {
+			white-space: pre-line;
+			text-align: center;
+		}
+		
+		/* Cell colors */
+		.ok {
+			background-color: #8eec6c;
+		}
+		.fail {
+			background-color: #ff8f8f;
+		}
+		.meh {
+			background-color: #ffc253;
+		}
+
+		h1 {
+			text-align: center;
+		}
+		.warning {
+			font-size: xx-large;
+			text-align: center;
+		}
 	</style>
 </head>
 <body>
@@ -90,22 +97,30 @@ function section (string $name) {
 	<th scope="col">Variable</th>
 	<th scop="col">Value</th>
 </tr>
+<!-- Table contents -->
 <?php
 
-# Check files
+# ---
+section("PHP");
+
+$valid_php = version_compare(PHP_VERSION, "7.1", ">=");
+row("PHP_VERSION ≥ 7.1", PHP_VERSION, $valid_php);
+exit_unless($valid_php);
+
+# ---
 section("Files");
 
 $included_config = (bool) include_once '../src/config.php';
 row("Configuration file exists", "../src/config.php", $included_config);
-if (!$included_config) exit;
+exit_unless($included_config);
 
 $included_uweh = (bool) include_once '../src/Uweh.php';
 row("Uweh php lib exists", "../src/Uweh.php", $included_uweh);
-if (!$included_uweh) exit;
+exit_unless($included_uweh);
 
 row("Cleanup script exists", "../src/clean_files.sh", file_exists(dirname(__FILE__, 2) . "/src/clean_files.sh"));
 
-# Check variable names
+# --- 
 section("Configuration");
 
 $configs = array("UWEH_MAIN_URL", "UWEH_ABUSE_EMAIL", "UWEH_MAX_RETENTION_TIME", "UWEH_MAX_RETENTION_TEXT", "UWEH_DOWNLOAD_URL", "UWEH_FILES_PATH", "UWEH_MAX_FILESIZE", "UWEH_LONGEST_FILENAME", "UWEH_RANDOM_FILENAME_LENGTH", "UWEH_PREFIX_MAX_TRIES", "UWEH_EXTENSION_FILTERING_MODE", "UWEH_EXTENSION_BLOCKLIST", "UWEH_EXTENSION_GRANTLIST", "POOR_MAN_CRON_INTERVAL");
@@ -115,11 +130,10 @@ foreach ($configs as $conf) {
 		array_push($missing_conf, $conf);
 	}
 }
-
 $no_missing_conf = ! count($missing_conf);
 $missing_conf_msg = $no_missing_conf ? "OK" : "Missing: ".implode(", ", $missing_conf);
 row("Configuration constants are defined", $missing_conf_msg , $no_missing_conf);
-if (!$no_missing_conf) exit;
+exit_unless($no_missing_conf);
 
 # Check configuration values
 
@@ -135,7 +149,7 @@ row("UWEH_DOWNLOAD_URL has protocol and trailing slash", UWEH_DOWNLOAD_URL, UWEH
 
 $valid_files_dir = UWEH_FILES_PATH[-1] === '/';
 row("UWEH_FILES_PATH has trailing slash", UWEH_FILES_PATH, $valid_files_dir);
-if (!$valid_files_dir) exit;
+exit_unless($valid_files_dir);
 
 $valid_max_filesize = is_int(UWEH_MAX_FILESIZE) && UWEH_MAX_FILESIZE > 0;
 if ($valid_max_filesize && UWEH_MAX_FILESIZE < 300*1000) $valid_max_filesize = "meh";
@@ -159,7 +173,7 @@ row("UWEH_EXTENSION_GRANTLIST is an array", implode(", ", UWEH_EXTENSION_GRANTLI
 
 row("POOR_MAN_CRON_INTERVAL is a positive integer", POOR_MAN_CRON_INTERVAL, is_int(POOR_MAN_CRON_INTERVAL) && POOR_MAN_CRON_INTERVAL >= 0);
 
-# Coherence
+# ---
 section("Configuration coherence");
 
 $ini_max_size = ini_get('upload_max_filesize');
@@ -174,12 +188,12 @@ row("UWEH_RANDOM_FILENAME_LENGTH ≤ UWEH_LONGEST_FILENAME", UWEH_RANDOM_FILENAM
 
 row("POOR_MAN_CRON_INTERVAL is disabled", POOR_MAN_CRON_INTERVAL == 0 ?: "it's preferable to use a cron job", POOR_MAN_CRON_INTERVAL ? "meh" : "ok");
 
-# Check file system and access
+# ---
 section("Filesystem");
 
 $files_dir = Uweh\make_absolute(UWEH_FILES_PATH);
 row("Files directory exists", $files_dir, $files_dir_exists = is_dir($files_dir));
-if (!$files_dir_exists) exit;
+exit_unless($files_dir_exists);
 
 $test_file = $files_dir.'.keep';
 row("Files directory is writable", file_put_contents($test_file, time()) !== False);
@@ -189,7 +203,7 @@ $src_test_file = dirname(__FILE__, 2) . '/src/.test_write';
 row("Source directory is writable", touch($src_test_file) !== False);
 unlink($src_test_file);
 
-# Script status
+# ---
 section("Cleanup script");
 
 $script_info = array();
@@ -204,6 +218,7 @@ row("Script has right files path", $script_file_path, $script_file_path === UWEH
 $script_time = explode(": ", $script_info[3])[1] ?? False;
 row("Script has right time", $script_time, $script_time === (string) UWEH_MAX_RETENTION_TIME);
 
+# Test script by creating files and seeing if they're deleted
 $del_fn = $files_dir.'.to_delete';
 $keep_fn = $files_dir.'.to_keep';
 
@@ -216,7 +231,7 @@ $kept = file_exists($keep_fn);
 row("Script deletes old files but keeps recent ones", $created && $retval === 0 && $deleted && $kept);
 unlink($keep_fn);
 
-# Collision probabilities
+# ---
 section("Collision info");
 
 $alphabet_size = strlen(Uweh\PREFIX_ALPHABET);
@@ -232,6 +247,7 @@ $rand_max = $alphabet_size ** UWEH_RANDOM_FILENAME_LENGTH;
 row("Unique random names", $rand_max, $rand_max > 100);
 
 ?>
+<!-- End of table -->
 </table>
 
 <p class="warning">
