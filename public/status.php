@@ -1,5 +1,28 @@
 <?php
 
+# Check if there is a password
+if (isset($hash)) {
+	$checked_pw = True;
+
+	$want_auth = ($_GET['do'] ?? null) === 'auth';
+	$password = $_POST['pass'] ?? null;
+
+	if (!$want_auth) exit;
+
+	# Check if password exists and is valid
+	if (!is_null($password) && password_verify($password, $hash)) {
+		# Password accepted, proceeding to the rest of the code…
+	} else {
+		?>
+		<form method="POST">
+		<input type="password" name="pass" required>
+		<button>Uweh!</button>
+		</form>
+		<?php
+		exit;
+	}
+}
+
 # Takes a shorthand byte value and returns the number of bytes
 # cf. https://www.php.net/manual/en/faq.using.php#faq.using.shorthandbytes
 function shorthand_to_bytes ($x) {
@@ -249,11 +272,12 @@ row("Unique random names", $rand_max, $rand_max > 100);
 ?>
 <!-- End of table -->
 </table>
-
-<p class="warning">
-	This file should be deleted or disabled as it contains sensitive information<br>
-	You could rename it to status.txt
-<p>
+<?php if (!$checked_pw) { ?>
+	<p class="warning">
+		This file should be deleted or disabled as it contains sensitive information<br>
+		You could rename it to status.txt or password protect it.
+	<p>
+<?php } ?>
 
 </body>
 </html>
