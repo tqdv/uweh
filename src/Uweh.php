@@ -53,7 +53,6 @@ function save_file (array $file, array $flags = array()) : string {
 	if ($gen_random) { $filename = gen_random_name($name); }
 	else {
 		[$filename, $recheck_ext] = shorten_name($name);
-		var_dump($filename);
 		if ($recheck_ext) {
 			try { check_extension($name); } catch (BadFileExtension $e) {
 				$filename = gen_random_name(); # If all else fails, use random filename
@@ -269,7 +268,7 @@ function make_absolute (string $p) : string {
  * cf. <https://www.php.net/manual/en/features.file-upload.errors.php>
  */
 class UploadError extends Exception {
-	public int $error_code;
+	public /*int*/ $error_code;
 	function __construct (int $error_code) {
 		parent::__construct("File upload failed with error code $error_code");
 		$this->error_code = $error_code;
@@ -278,7 +277,7 @@ class UploadError extends Exception {
 
 /** The uploaded file exceeds UWEH_MAX_FILESIZE */
 class FileTooBig extends Exception {
-	public int $size; # In bytes
+	public /*int*/ $size; # In bytes
 	function __construct (int $size) {
 		parent::__construct("Uploaded file exceeds UWEH_MAX_FILESIZE");
 		$this->size = $size;
@@ -294,7 +293,7 @@ class EmptyFile extends Exception {
 
 /** The uploaded file's extension is not allowed by Uweh */
 class BadFileExtension extends Exception {
-	public string $extension;
+	public /*string*/ $extension;
 	function __construct (string $extension) {
 		parent::__construct("Uploaded file extension '$extension' is not allowed");
 		$this->extension = $extension;
@@ -303,7 +302,7 @@ class BadFileExtension extends Exception {
 
 /** Filename collided too many times */
 class FilenameCollision extends Exception {
-	public string $filename;
+	public /*string*/ $filename;
 	function __construct (string $filename) {
 		parent::__construct("Filename '$filename' collided more than UWEH_PREFIX_MAX_TRIES times");
 		$this->filename = $filename;
@@ -312,7 +311,7 @@ class FilenameCollision extends Exception {
 
 /** The server failed to save the file */
 class SaveFail extends Exception {
-	public string $path;
+	public /*string*/ $path;
 	function __construct (string $filepath) {
 		parent::__construct("Failed to save file to '$filepath'");
 		$this->path = $filepath;

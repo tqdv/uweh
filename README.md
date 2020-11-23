@@ -54,6 +54,11 @@ The uploaded files are then stored in one of those folders.
 
 - Display a warning message if the user selects a file that will be rejected (in addition to the red outline around the input field).
 
+## PHP 7.2
+
+- No underscores in number literals eg. `10_000`
+- No types for class properties
+
 ### Caveats
 
 - There is no upload progress bar

@@ -76,7 +76,7 @@ function process_file ($file) {
 
 function display_back_button () {
 	?>
-	<div class="button-ctn"><a class="upload-btn not-a-link" href="<?= UWEH_MAIN_URL ?>">Go back</a><div>';
+	<div class="btn-ctn"><a class="btn not-a-link" href="<?= UWEH_MAIN_URL ?>">Go back</a></div>
 	<?php
 }
 
@@ -107,7 +107,7 @@ function display_form () {
 				<label for="file-input" class="no-click">Select file to upload: </label><br>
 				<input type="file" id="file-input" name="file" required>
 			</span>
-			<button type="submit" id="upload-btn">Upload file</button>
+			<button type="submit" id="upload-btn" class="btn">Upload file</button>
 		</div>
 		
 		<div id="upload-options">

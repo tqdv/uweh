@@ -238,9 +238,9 @@ $alphabet_size = strlen(Uweh\PREFIX_ALPHABET);
 row("Prefix alphabet size", $alphabet_size, $alphabet_size == Uweh\PREFIX_ALPHABET_LAST + 1);
 row("Subfolder name length", Uweh\PREFIX_LENGTH, Uweh\PREFIX_LENGTH > 0);
 $subfolder_count = $alphabet_size**Uweh\PREFIX_LENGTH;
-row("Unique subfolder/prefix names\n(recommended ≤ 10_000)", $subfolder_count, $subfolder_count <= 10_000);
+row("Unique subfolder/prefix names\n(recommended ≤ 10_000)", $subfolder_count, $subfolder_count <= 10000);
 
-$max_files = floor($subfolder_count * (1/10_000)**(1/UWEH_PREFIX_MAX_TRIES));
+$max_files = floor($subfolder_count * (1/10000)**(1/UWEH_PREFIX_MAX_TRIES));
 row("Max similar files so that Prob(generated invalid prefixes ≥ UWEH_PREFIX_MAX_TRIES) ≤ 1/10_000", $max_files, $max_files > 100);
 
 $rand_max = $alphabet_size ** UWEH_RANDOM_FILENAME_LENGTH;

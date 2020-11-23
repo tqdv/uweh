@@ -1,8 +1,12 @@
 /src/config.php
 
-/public/favicon.png
-/public/img/riamu.png
+/public/favicon-32.png
+/public/favicon-16.png
+/public/favicon-196.png
+/public/riamu.png
 /public/files/*
 
+/build/
+
 /tmp/
-/notes.local.md
+/local/
