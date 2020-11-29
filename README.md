@@ -40,22 +40,22 @@ This leads to some drawbacks: there is no upload progress bar, and the filesize 
 
 ### Execution overview
 
-TODO rewrite
+`index.php` mostly handles the HTML, and some argument preprocessing. It hands off the processing to `Uweh\save_file(…)` which is the main function. That returns the filepath, which is passed to `Uweh\get_download_url` to turn it into a url.
 
-`index.php` mostly handles the HTML, and some argument preprocessing. It hands off
-the processing to `Uweh\save_file(…)` which is the main function.
+The about page is handled in `index.php` when requesting `?about`.
+The api page `api.php` calls the same functions as `index.php` and formats it nicely.
 
-The file expiration is handled by the cleanup script `./src/clean_files.sh` which reads the configuration file. 
+The file expiration is handled by the cleanup script `./src/clean_files.sh` which reads the configuration file `config.php`.
 
-Uweh creates a lot of 2-letter subfolders in the files directory: this is to prevent filename collision.
-The uploaded files are then stored in one of those folders.
+To store the files, Uweh creates a lot of 2-letter subfolders in the files directory: this is to prevent filename collision. The uploaded files are then stored in one of those folders. (You could customize the subfolder length by editing `Uweh.php`).
 
 ### TODO
 
 - Document `main.css`, `Uweh.php` and `index.php`
 - Display a warning message if the user selects a file that will be rejected (in addition to the red outline around the input field).
 
-Documentation status:
+### Documentation status
+
 ```text
 --    src/                   Source files
         Uweh.php               Main library file
