@@ -38,10 +38,11 @@ function fatal (string $msg) {
 	echo '<p class="payload-msg error-msg">Error: '.htmlspecialchars($msg).'</p>';
 }
 
-function process_file ($file) {
+# Returns the download url
+function process_file ($file) : ?string {
 	if (! Uweh\is_single_file($file)) {
 		fatal("Multiple files were uploaded");
-		return;
+		return null;
 	}
 	
 	$name = $_POST['name'] ?? "";
@@ -55,8 +56,7 @@ function process_file ($file) {
 		));
 		
 		$download_url = Uweh\get_download_url($filepath);
-		
-		echo "<p class=\"payload-msg\">Your download link is<br><a href=\"$download_url\">$download_url</a></p>";
+		return $download_url;
 	
 	} catch (Exception $e) {
 		switch (Error::categorize($e)) {
@@ -72,11 +72,59 @@ function process_file ($file) {
 			fatal("An unknown error occured");
 		}
 	}
+
+	return null;
 }
 
-function display_back_button () {
+function display_url_and_buttons ($download_url) {
 	?>
-	<div class="btn-ctn"><a class="btn not-a-link" href="<?= UWEH_MAIN_URL ?>">Go back</a></div>
+	<p class="payload-msg">
+		Your download link is<br><a href="<?= $download_url ?>"><?= $download_url ?></a><br>
+		<button id="copy-link-btn" class="btn hidden">Copy link to clipboard</button>
+		<span id="copied-placeholder"></span>
+	</p>
+	<div class="btn-ctn"><a class="btn not-a-link" href="<?= UWEH_MAIN_URL ?>">← Go back</a></div>
+	<?php
+}
+
+function display_url_script ($download_url) {
+	?>
+	<script>
+	(function () {
+		// Only works in secure contexts aka https
+		if (!navigator.clipboard) return;
+
+		// Set behaviour
+		let copy_link = document.getElementById("copy-link-btn");
+		let success_span = document.getElementById("copied-placeholder");
+		let success_parent = success_span.parentNode;
+		let timer_id = null;
+		copy_link.addEventListener("click", e => {
+			clearTimeout(timer_id);
+			navigator.clipboard.writeText("<?= $download_url ?>").then(() => {
+				console.log("TODO successful");
+			});
+
+			// Replace child to interrupt animation
+			let cloned = success_span.cloneNode(true);
+			success_parent.replaceChild(cloned, success_span);
+			success_span = cloned;
+
+			success_span.textContent = "Copied !";
+			success_span.classList.add("animation-copied");
+
+			// Delete after timeout
+			timer_id = setTimeout(() => {
+				console.log("timeout");
+				success_span.textContent = "";
+				success_span.classList.remove("animation-copied");
+			}, 1500);
+		});
+			
+		// Display it
+		copy_link.classList.remove("hidden");
+	})();
+	</script>
 	<?php
 }
 
@@ -178,8 +226,11 @@ $file = $_FILES['file'] ?? null;
 $about = isset($_GET['about']);
 
 if (isset($file)) {
-	process_file($file);
-	display_back_button();
+	$download_url = process_file($file);
+	if (!is_null($download_url)) {
+		display_url_and_buttons($download_url);
+		display_url_script($download_url);
+	}
 } else if ($about) {
 	display_about();
 } else {

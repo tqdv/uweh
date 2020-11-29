@@ -5,7 +5,7 @@ namespace Uweh;
 use \Exception;
 require_once 'config.php';
 
-const VERSION = "2.0";
+const VERSION = "2.1";
 
 const PREFIX_ALPHABET = 'abdefghjknopqstuvxyzABCDEFHJKLMNPQRSTUVWXYZ345679'; # 49 letters without homoglyphs
 const PREFIX_ALPHABET_LAST = 48; # == strlen(ALPHABET) - 1
@@ -42,7 +42,7 @@ function save_file (array $file, array $flags = array()) : string {
 	
 	# Prepare parameters
 	$name = $file['name'] ?? "";
-	if (strlen($flags['name'])) $name = $flags['name'];
+	if (($flags['name'] ?? "") != "") $name = $flags['name'];
 	$name = sanitize_name($name);
 	$gen_random = ($flags['random'] ?? False) || strlen($name) == 0;
 
@@ -71,17 +71,29 @@ function save_file (array $file, array $flags = array()) : string {
 	if (!$found) throw new FilenameCollision($filename);
 
 	# Save file
-	if (!file_exists($fileroot.$subdir)) mkdir($fileroot.$subdir); # ignore error
-	if (move_uploaded_file($file['tmp_name'], $fileroot.$filepath)) return $filepath;
+	$try_to_save_file = function () use ($fileroot, $subdir, $filepath, $file) : ?string {
+		if (!file_exists($fileroot.$subdir)) {
+			$dir_ok = @mkdir($fileroot.$subdir); # Suppress warnings
+			if (!$dir_ok) return null;
+
+			$move_ok = move_uploaded_file($file['tmp_name'], $fileroot.$filepath);
+			if (!$move_ok) return null;
+
+			return $filepath;
+		}
+	};
+
+	$saved = $try_to_save_file();
+	if (!is_null($saved)) return $saved;
 	
 	# Try again because there may be a race condition where the request is made at the same time
 	# as the cleanup job (unlikely)  which deletes the empty directory after it is created,
 	# but before the file is moved into it (rare).
 	clearstatcache();
-	if (!file_exists($fileroot.$subdir)) {
-		mkdir($fileroot.$subdir); # ignore error
-		if (move_uploaded_file($file['tmp_name'], $fileroot.$filepath)) return $filepath;
-	}
+	$saved = $try_to_save_file();
+	if (!is_null($saved)) return $saved;
+
+	error_log("Uweh error: Failed to move ".$file['tmp_name']." to $fileroot$filepath");
 
 	throw new SaveFail($filepath);
 }

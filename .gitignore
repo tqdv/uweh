@@ -1,10 +1,9 @@
 /src/config.php
 
-/public/favicon-32.png
-/public/favicon-16.png
-/public/favicon-196.png
+/public/favicon-*.png
 /public/riamu.png
 /public/files/*
+!/public/files/.keep
 
 /build/
 

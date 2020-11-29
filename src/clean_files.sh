@@ -4,13 +4,11 @@
 # 
 # === Synopsis ===
 # 
-#   ```sh
 #   # Call with no arguments to delete expired files based on config.php
 #   ./clean_files.sh
 #   
 #   # Call with any argument to print configuration read from config.php:
 #   ./clean_files.sh test
-#   ```
 # 
 # === Description
 # 

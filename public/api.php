@@ -7,13 +7,13 @@ header('Content-Type: text/plain; charset=UTF-8');
 
 function fatal (string $message) {
 	echo "Error: $message\n";
-	exit(0);
+	exit;
 }
 
 # Only work on ?do=upload
-if (!isset($_GET['do']) || $_GET['do'] !== 'upload') {
+if (($_GET['do'] ?? null) !== 'upload') {
 	echo "Example usage: curl -i -F name=test.jpg -F file=@localfile.jpg ".UWEH_MAIN_URL."api.php?do=upload\n";
-	exit(0);
+	exit;
 }
 
 # Process arguments
@@ -22,13 +22,12 @@ $file = $_FILES['file'] ?? null;
 if (!isset($file)) {
 	fatal("Missing file");
 }
-if (! Uweh\is_single_file($file)) {
+if (!Uweh\is_single_file($file)) {
 	fatal("Bad file upload");
 }
 
 $name = $_POST['name'] ?? "";
-$random = $_POST['random'] ?? null;
-$random = isset($random) ? (bool) strlen($random) : False;
+$random = ($_POST['random'] ?? "") != "";
 
 # Try to save the file
 try {
@@ -51,5 +50,4 @@ try {
 		default:
 			fatal("An unknown error occured");
 	}
-	exit(0);
 }
