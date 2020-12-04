@@ -91,7 +91,7 @@ function display_url_script ($download_url) {
 	?>
 	<script>
 	(function () {
-		// Only works in secure contexts aka https
+		// Copy to clpiboard only works in secure contexts aka https
 		if (!navigator.clipboard) return;
 
 		// Set behaviour
@@ -151,10 +151,11 @@ function display_form () {
 	<form id="upload-form" method="post" enctype="multipart/form-data">
 		<input type="hidden" name="MAX_FILE_SIZE" value="<?= UWEH_MAX_FILESIZE ?>">
 		<div id="upload-it">
-			<span id="file-form">
-				<label for="file-input" class="no-click">Select file to upload: </label><br>
+			<div id="file-form">
+				<label for="file-input" class="no-click">Select file to upload: </label>
 				<input type="file" id="file-input" name="file" required>
-			</span>
+				<span id="drag-drop-info" class="hidden">… or drag and drop the file here</span>
+			</div>
 			<button type="submit" id="upload-btn" class="btn">Upload file</button>
 		</div>
 		
@@ -177,9 +178,6 @@ function display_form_script () {
 	?>
 	<script>
 	(function () {
-		let file_input = document.getElementById('file-input');
-		let upload_btn = document.getElementById('upload-btn');
-
 		function is_extension_allowed(file) {
 			let i = file.name.lastIndexOf('.');
 			let ext = file.name.substring(i + 1); // If i == -1, then it still works
@@ -201,20 +199,113 @@ function display_form_script () {
 			return 0 < file.size && file.size <= <?= UWEH_MAX_FILESIZE ?>;
 		}
 
-		function check_file_input (file_input) {
-			let invalid_file = Array.from(file_input.files).some((v) => !(is_extension_allowed(v) && valid_file_size(v)));
-			if (invalid_file) {
-				file_input.classList.add('invalid-file');
-				upload_btn.setAttribute('disabled', '');
-			} else {
-				file_input.classList.remove('invalid-file');
-				upload_btn.removeAttribute('disabled');
+		// Check if the file is a directory by trying to read it
+		async function file_is_directory (file) {
+			return await new Promise((resolve) => {
+				let fr = new FileReader();
+				let aborted = false;
+
+				fr.addEventListener('progress', e => {
+					// Order matters
+					aborted = true;
+					fr.abort();
+				});
+				fr.addEventListener('loadend', e => {
+					let is_dir = fr.error !== null && !aborted;
+					resolve(is_dir);
+				});
+				
+				fr.readAsArrayBuffer(file);
+			});
+		}
+
+		// File input state
+		class UwehFileInput {
+			constructor (file_input, upload_btn) {
+				this.file_input = file_input;
+				this.upload_btn = upload_btn;
+			}
+
+			addListeners() {
+				this.file_input.addEventListener('change', async e => await this.checkInput());
+			}
+
+			disableInput() {
+				this.file_input.classList.add('invalid-file');
+				this.upload_btn.setAttribute('disabled', '');
+			}
+
+			enableInput() {
+				this.file_input.classList.remove('invalid-file');
+				this.upload_btn.removeAttribute('disabled');
+			}
+
+			async checkInput() {
+				let files = this.file_input.files;
+
+				let invalid_file = Array.from(files).some((v) => !(is_extension_allowed(v) && valid_file_size(v)));
+				let too_many_files = files.length > 1;
+				let is_single_dir = files.length == 1 && await file_is_directory(files[0]);
+
+				if (invalid_file || too_many_files || is_single_dir) {
+					this.disableInput();
+				} else {
+					this.enableInput();
+				}
 			}
 		}
 
+		// Dropzone behaviour
+		class UwehDrop {
+			constructor (dropzone, uweh_file_input) {
+				this.dropzone = dropzone;
+				this.uweh_file_input = uweh_file_input;
+			}
+
+			addListeners() {
+				this.dropzone.addEventListener('drop', e => this.handleDrop(e));
+				this.dropzone.addEventListener('dragenter', e => this.addDragClass());
+				this.dropzone.addEventListener('dragleave', e => this.removeDragClass());
+				this.dropzone.addEventListener('dragover', e => { e.preventDefault(); this.addDragClass() });
+			}
+
+			handleDrop (e) {
+				this.uweh_file_input.file_input.files = e.dataTransfer.files;
+				this.uweh_file_input.checkInput();
+
+				this.removeDragClass();
+				e.preventDefault();
+			}
+
+			removeDragClass() {
+				this.dropzone.classList.remove('file-dragover');
+			}
+
+			addDragClass() {
+				this.dropzone.classList.add('file-dragover');
+			}
+		}
+
+		// Disable drag and drop on the page
+		document.body.addEventListener('dragover', e => e.preventDefault());
+		document.body.addEventListener('drop', e => e.preventDefault());
+
 		// Selecting an invalid file disables the upload and highlights the input in red
-		file_input.addEventListener('change', e => check_file_input(e.target));
-		check_file_input(file_input);
+		let file_input = document.getElementById('file-input');
+		let upload_btn = document.getElementById('upload-btn');
+		let uweh_file_input = new UwehFileInput(file_input, upload_btn);
+		uweh_file_input.addListeners();
+		uweh_file_input.checkInput();
+
+		// Enable drag and drop and display text
+		if ('DataTransferItem' in window) {
+			let dropzone = document.getElementById('upload-it');
+			let uweh_drop = new UwehDrop(dropzone, uweh_file_input);
+			uweh_drop.addListeners();
+
+			let infotext = document.getElementById('drag-drop-info');
+			infotext.classList.remove('hidden');
+		}
 	})();
 	</script>
 	<?php

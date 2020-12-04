@@ -112,9 +112,8 @@ h1 {
 	flex-direction: column;
 	margin: auto;
 	margin-top: 1rem;
-	padding: 1rem;
+	padding: 0.5rem;
 	min-width: 20rem;
-	max-width: 35rem;
 	align-items: center;
 }
 
@@ -123,27 +122,43 @@ h1 {
 }
 
 #upload-btn {
-	margin: 2em auto;
+	margin: 1.5em auto 2em;
 }
 
 #upload-it {
 	font-size: 1.2em;
-	margin: 1rem auto;
+	margin: 0 auto 1rem;
 	line-height: 1.7em;
+	transition: background-color ease-out .4s; /* the event trigger delay makes it look like an ease-in-out */
+	border-radius: 1ex;
 }
 
 #file-form {
-	margin: 1rem auto;
+	display: flex;
+	flex-direction: column;
+	margin: 0.5ex auto;
+	padding: 1ex 5ch;
 }
 
 #file-input {
 	border-radius: 0.5ex;
 	padding: 2px;
+	padding-right: 1ch;
 	border: var(--border-line);
 }
 
 #file-input.invalid-file {
 	box-shadow: 0 0 1.5px 1px red;
+}
+
+#drag-drop-info {
+	display: inline-block;
+	font-size: 0.7em;
+	align-self: flex-end;
+}
+
+.file-dragover {
+	background-color: #e884a944;
 }
 
 /* Upload options */

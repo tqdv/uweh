@@ -5,7 +5,7 @@ namespace Uweh;
 use \Exception;
 require_once 'config.php';
 
-const VERSION = "2.1";
+const VERSION = "2.2";
 
 const PREFIX_ALPHABET = 'abdefghjknopqstuvxyzABCDEFHJKLMNPQRSTUVWXYZ345679'; # 49 letters without homoglyphs
 const PREFIX_ALPHABET_LAST = 48; # == strlen(ALPHABET) - 1

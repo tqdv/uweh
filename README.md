@@ -51,6 +51,7 @@ To store the files, Uweh creates a lot of 2-letter subfolders in the files direc
 
 ### TODO
 
+- Maybe move the javascript to another file ?
 - Document `main.css`, `Uweh.php` and `index.php`
 - Display a warning message if the user selects a file that will be rejected (in addition to the red outline around the input field).
 

@@ -17,6 +17,7 @@ my @files = qw<
 	public/main.css
 
 	bin/set_permissions.sh
+	bin/protect_status.pl
 
 	README.md
 	LICENSE

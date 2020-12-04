@@ -143,6 +143,10 @@ exit_unless($included_uweh);
 
 row("Cleanup script exists", "../src/clean_files.sh", file_exists(dirname(__FILE__, 2) . "/src/clean_files.sh"));
 
+# ---
+section("Uweh");
+row("Uweh\VERSION", Uweh\VERSION);
+
 # --- 
 section("Configuration");
 
