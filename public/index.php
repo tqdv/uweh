@@ -23,6 +23,7 @@ Uweh\timer();
 	<meta property="og:url" content="<?= UWEH_MAIN_URL ?>">
 	<meta property="og:description" content="Temporary file hosting. Share files up to <?= Uweh\human_bytes(UWEH_MAX_FILESIZE) ?> for <?= UWEH_MAX_RETENTION_TEXT ?>.">
 	<meta property="og:locale" content="en_US" />
+	<!-- End of head -->
 </head>
 <body>
 <main>

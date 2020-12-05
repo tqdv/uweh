@@ -1,7 +1,11 @@
 # Changelog
 
+# [v2.2] – 2020-12-05
 
-# [v2.1] - 2020-11-29
+Add drap and drop support.
+Add option to include tracking html in head
+
+# [v2.1] – 2020-11-29
 
 Add copy link button.
 Rework executation overview.

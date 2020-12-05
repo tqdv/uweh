@@ -18,6 +18,7 @@ my @files = qw<
 
 	bin/set_permissions.sh
 	bin/protect_status.pl
+	bin/add_tracking_include.pl
 
 	README.md
 	LICENSE
@@ -26,6 +27,7 @@ my @files = qw<
 
 my @custom_files = qw<
 	src/config.php
+	src/tracking.html
 
 	public/favicon-32.png
 	public/favicon-16.png
