@@ -60,6 +60,7 @@ To store the files, Uweh creates a lot of 2-letter subfolders in the files direc
 ```text
 --    src/                   Source files
         Uweh.php               Main library file
+        UwehTpl.php            Page fragments to make index.php more straight forward
 OK      config.template.php    Configuration file template
 OK      clean_files.sh         File cleanup script run by cron
 --    bin/                   Installation helper scripts
@@ -67,7 +68,16 @@ OK      protect_status.pl      Set status.php's password
 OK      set_permissions.sh     Set file permissions
 --    public/               Webserver root
         index.php             Main page
+        about.php             About page
 OK      api.php               Api page
 OK      status.php            Status page
         main.css              Main stylesheet
 ```
+
+## Docs
+
+What do all these files do ?
+
+TODO
+
+We inline CSS for the main page, but use the external file for all others to save that extra blocking request

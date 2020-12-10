@@ -3,10 +3,12 @@
 
 /public/favicon-*.png
 /public/riamu.png
+/public/riamu.webp
 /public/files/*
 !/public/files/.keep
 
 /build/
+/tools/
 
 /tmp/
 /local/

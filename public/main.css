@@ -4,7 +4,6 @@
 	--select-color: #AAA;
 	--border-line: 1px solid #CCC;
 	--background-color-almost-white: #faf6f6;
-	--background-image-url: url("riamu.png");
 }
 
 html {
@@ -23,14 +22,27 @@ body {
 	/* padding: 0; */
 	
 	background-color: var(--background-color-almost-white);
-	background-image: var(--background-image-url);
-	background-repeat: no-repeat;
-	background-position: bottom left;
 }
+
+/* Background image */
+body {
+	position: relative;
+	z-index: -1;
+}
+body > * {
+	z-index: initial;
+}
+#riamu {
+	position: absolute;
+	left: 0; bottom: 0;
+	z-index: -1;
+}
+/* --- */
+
 
 main {
 	min-width: 20rem;
-	margin: 3em 1ch;
+	margin: 1em 1ch;
 	padding: 1em;
 	box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 	background-color: #FEFEFEBB;
@@ -242,8 +254,4 @@ h1 {
 
 .hidden {
 	display: none;
-}
-
-.animation-paused {
-	animation-play-state: paused;
 }
