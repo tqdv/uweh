@@ -8,13 +8,17 @@ use File::Path qw(make_path remove_tree);
 my @files = qw<
 	src/clean_files.sh
 	src/Uweh.php
+	src/UwehTpl.php
 	src/config.template.php
 
 	public/index.php
+	public/upload.php
+	public/about.php
 	public/api.php
 	public/status.php
 	
 	public/main.css
+	public/main.js
 
 	bin/set_permissions.sh
 	bin/protect_status.pl
@@ -33,6 +37,7 @@ my @custom_files = qw<
 	public/favicon-16.png
 	public/favicon-196.png
 	public/riamu.png
+	public/riamu.webp
 >;
 
 my $build_dir = "build";
