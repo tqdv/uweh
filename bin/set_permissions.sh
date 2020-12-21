@@ -33,7 +33,7 @@ chown $USER:$GROUP public public/* src src/
 echo "Setting permissions. Ignore warnings for files that don't exist"
 
 chmod g=rx,o=rx public
-chmod g=r,o=r public/favicon-*.png public/*.php public/*.css
+chmod g=r,o=r public/*.png public/*.webp public/*.php public/*.js public/*.css
 
 chmod g=rwx,o=rx src
 chmod g=r,o=r src/*

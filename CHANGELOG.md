@@ -1,16 +1,22 @@
 # Changelog
 
-# [v2.2] – 2020-12-05
+## [v2.3] – 2020-12-21
 
-Add drap and drop support.
-Add option to include tracking html in head
+- Implement an MVC (?) pattern by creating UwehTpl
+- Implement Post-Redirect-Get pattern to prevent form resubmission
+- Use `riamu.webp` to save bandwidth
 
-# [v2.1] – 2020-11-29
+## [v2.2] – 2020-12-05
 
-Add copy link button.
-Rework executation overview.
+- Add drap and drop support
+- Add option to include tracking html in head
 
-# [v2.0] – 2020-10-26
+## [v2.1] – 2020-11-29
+
+- Add copy link button
+- Rework executation overview
+
+## [v2.0] – 2020-10-26
 
 Rethink storage so that the user downloads the right filename (without the random prefix).
 Remove `about.php` by merging it into `index.php`.

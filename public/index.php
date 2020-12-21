@@ -5,17 +5,18 @@ require_once '../src/Uweh.php';
 
 use Uweh\Error;
 
-# Functions
-
-function fatal (string $msg) {
-	echo '<p class="payload-msg error-msg">Error: '.htmlspecialchars($msg).'</p>';
-}
-
-# Returns the download url
-function process_file ($file) : ?string {
+/** Save the uploaded file according to POST arguments, and return its filepath.
+ * 
+ * Given an uploaded file and (optional) POST arguments, save it using `Uweh\save_file`
+ * and return the storage filepath as an array of [$filepath, null].
+ * On failure, return the `Uweh\Error` code as [null, $error_code]
+ * 
+ * @param $file The $_FILES file to save
+ * @return array [filepath: ?string, error: ?int]
+ */
+function process_file ($file) : array {
 	if (! Uweh\is_single_file($file)) {
-		fatal("Multiple files were uploaded");
-		return null;
+		return [null, Error::MULTIPLE_FILES];
 	}
 	
 	$name = $_POST['name'] ?? "";
@@ -28,28 +29,36 @@ function process_file ($file) : ?string {
 			"name" => $name,
 		));
 		
-		$download_url = Uweh\get_download_url($filepath);
-		return $download_url;
+		return [$filepath, null];
 	
 	} catch (Exception $e) {
-		switch (Error::categorize($e)) {
-		case Error::SOME_ERROR:
-			fatal("An error occured"); break;
-		case Error::BAD_FILE:
-			fatal("The file is rejected. It should be less than ".Uweh\human_bytes(UWEH_MAX_FILESIZE).", not empty and have an allowed extension."); break;
-		case Error::UPLOAD_FAIL:
-			fatal("The file upload failed"); break;
-		case Error::SERVER_ERROR:
-			fatal("Server error due to a misconfiguration or a full disk. Check back later."); break;
-		default:
-			fatal("An unknown error occured");
-		}
+		return [null, Error::categorize($e)];
 	}
 
-	return null;
+	return [null, Error::SOME_ERROR];
 }
 
-# ---
+# === Handle file upload (POST) ===
+
+$file = $_FILES['file'] ?? null;
+if (isset($file)) {
+	# Process file and redirect (Post-Redirect-Get pattern to prevent form resubmission)
+
+	[$filepath, $err] = process_file($file);
+
+	# Pass data through the GET parameters
+	if (isset($filepath)) {
+		$url = UWEH_MAIN_URL . "upload.php?path=" . rawurlencode($filepath);
+	} else {
+		$url = UWEH_MAIN_URL . "upload.php?error=" . rawurlencode($err);
+	}
+
+	# Redirect
+	header("Location: $url", True, 303);
+	exit;
+}
+
+# === Set template data ===
 
 $d = [
 	'page' => 'index',
@@ -72,12 +81,13 @@ $d = [
 	"favicon-196" => UWEH_MAIN_URL.'favicon-196.png',
 	"og:image" => UWEH_MAIN_URL."riamu.png",
 	
-	# Upload form (and javascript)
+	# Upload form html (and javascript)
 	"filteringMode" => UWEH_EXTENSION_FILTERING_MODE,
 	"maxFilesize" => UWEH_MAX_FILESIZE,
 	"longestFilename" => UWEH_LONGEST_FILENAME,
 ];
 
+# Upload form javascript (continued)
 if (UWEH_EXTENSION_FILTERING_MODE === 'GRANTLIST') {
 	$extlist = implode(',', UWEH_EXTENSION_GRANTLIST);
 } else if (UWEH_EXTENSION_FILTERING_MODE === 'NONE') {
@@ -87,7 +97,7 @@ if (UWEH_EXTENSION_FILTERING_MODE === 'GRANTLIST') {
 }
 $d['extlist'] = $extlist;
 
-# ---
+# === Render page ===
 
 UwehTpl\php_html_header($d);
 
@@ -95,18 +105,7 @@ UwehTpl\html_start('body');
 UwehTpl\html_start('main');
 
 	UwehTpl\body_header($d);
-
-	$file = $_FILES['file'] ?? null;
-
-	if (isset($file)) {
-		$download_url = process_file($file);
-		if (!is_null($download_url)) {
-			$d['downloadUrl'] = $download_url;
-			UwehTpl\html_download_url($d);
-		}
-	} else {
-		UwehTpl\html_upload_form($d);
-	}
+	UwehTpl\html_upload_form($d);
 
 UwehTpl\html_end('main');
 

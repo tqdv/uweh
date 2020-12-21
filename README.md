@@ -22,7 +22,7 @@ Deployment steps:
   ```cron
   0,15,30,45 * * * * sh /path/to/uweh/src/clean_files.sh >/dev/null 2>&1 
   ```
-- Open `status.php` in your browser and check that everything is in order.
+- Open `status.php` in your browser and check that everything is in order. If so, delete it for security.
 
 ## License
 
@@ -40,44 +40,45 @@ This leads to some drawbacks: there is no upload progress bar, and the filesize 
 
 ### Execution overview
 
-`index.php` mostly handles the HTML, and some argument preprocessing. It hands off the processing to `Uweh\save_file(…)` which is the main function. That returns the filepath, which is passed to `Uweh\get_download_url` to turn it into a url.
+`index.php` is the main entry point. It displays the HTML form using `UwehTpl`.
 
-The about page is handled in `index.php` when requesting `?about`.
-The api page `api.php` calls the same functions as `index.php` and formats it nicely.
+The user can upload a file by filling out the form, which will send an HTTP POST to `index.php`.
+The file will be saved using `Uweh\save_file` and the user will be redirected to `upload.php`,
+passing the saved filepath or the error code through the GET arguments. The redirection prevents form resubmission ie. double uploads.
 
-The file expiration is handled by the cleanup script `./src/clean_files.sh` which reads the configuration file `config.php`.
+`upload.php` displays the file download link with `Uweh\get_download_url`, or the error message based on GET arguments.
+If no arguments are present, it just redirects to `index.php`.
 
-To store the files, Uweh creates a lot of 2-letter subfolders in the files directory: this is to prevent filename collision. The uploaded files are then stored in one of those folders. (You could customize the subfolder length by editing `Uweh.php`).
+The about page is… `about.php`.
+
+The api page `api.php` calls the same functions as `index.php` (`Uweh\save_file`, etc…)and formats it nicely.
+
+File expiration is handled by the cleanup script `./src/clean_files.sh` which reads the configuration file `config.php`.
+
+To store the files, Uweh creates a lot of 2-letter subfolders in the files directory: this is to prevent filename collision. The uploaded files are then stored in one of those folders. (You _could_ customize the subfolder length by editing `Uweh.php`).
 
 ### TODO
 
-- Maybe move the javascript to another file ?
-- Document `main.css`, `Uweh.php` and `index.php`
+- Document `main.css`
 - Display a warning message if the user selects a file that will be rejected (in addition to the red outline around the input field).
 
 ### Documentation status
 
 ```text
---    src/                   Source files
-        Uweh.php               Main library file
-        UwehTpl.php            Page fragments to make index.php more straight forward
-OK      config.template.php    Configuration file template
-OK      clean_files.sh         File cleanup script run by cron
---    bin/                   Installation helper scripts
-OK      protect_status.pl      Set status.php's password
-OK      set_permissions.sh     Set file permissions
---    public/               Webserver root
-        index.php             Main page
-        about.php             About page
-OK      api.php               Api page
-OK      status.php            Status page
-        main.css              Main stylesheet
+--    src/                      Source files
+OK      Uweh.php                  Main library file
+OK      UwehTpl.php               Page fragments to make index.php more straight forward
+OK      config.template.php       Configuration file template
+OK      clean_files.sh            File cleanup script run by cron
+--    bin/                      Installation helper scripts
+OK      protect_status.pl         Set status.php's password
+OK      set_permissions.sh        Set file permissions
+OK      add_tracking_include.pl   Make Uweh include tracking.html
+--    public/                   Webserver root
+OK      index.php                 Main page
+OK      upload.php                Upload success page
+OK      about.php                 About page
+OK      api.php                   Api page
+OK      status.php                Status page
+        main.css                  Main stylesheet
 ```
-
-## Docs
-
-What do all these files do ?
-
-TODO
-
-We inline CSS for the main page, but use the external file for all others to save that extra blocking request

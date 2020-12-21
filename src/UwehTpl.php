@@ -3,7 +3,7 @@
 # Uweh html templates
 namespace UwehTpl;
 
-// Escapes double quotes and backslashes with a backslash
+/** Escapes double quotes and backslashes with a backslash. Use for JS */
 function qq_escape (string $s) : string {
 	$s = str_replace("\\", "\\\\", $s);
 	$s = str_replace("\"", "\\\"", $s);
@@ -26,41 +26,26 @@ function timer () : ?float {
 	}
 }
 
-// Start the time as soon as possible
+// Start the timer as soon as possible
 timer();
-
-// Keys: version
-function generation_line ($d) {
-	echo '<p class="gen-line">';
-		$ran_cleanup = $d['cleanup-func'](); # Run cleanup job if needed
-
-		$duration = timer();
-		$ram_in_mb = round(memory_get_peak_usage()/1048576, 2);
-		$version = $d['version'];
-		$cleanup_dot = ($ran_cleanup ? '.' : '');
-
-		echo "Generated in ${duration}s with ${ram_in_mb}MB by Uweh v${version}${cleanup_dot}";
-	echo '</p>';
-}
 
 /**
  * Prints the html <head> element as well as the doctype and html tag.
  * 
+ * If the description, canonical and og:image keys are present, we insert opengraph tags. 
  * We dump the CSS into the head if the page is the index.
  * 
- * @param array $d has keys: 
- *              - 'title' for the html <title>
- *              - 'description' for <meta name=description>
- *              - 'canonical' for the canonical url
- *              - 'favicon-32', 'favicon-16' and 'favicon-196' for favicon urls
- *              - 'og:image' for opengraph tags
- *              - (optional) 'endofhead' for the extra html to insert before the end of <head>
+ * Keys: title, (optional) description, (optional) canonical, favicon-{32,16,196}, (optional) og:image, (optional) endofhead
  */
 function php_html_header ($d) {
 	header('Content-Type: text/html; charset=utf-8');
 
-	$desc = htmlspecialchars($d['description']);
-	$canon = htmlspecialchars($d['canonical']);
+	if (isset($d['description'])) {
+		$desc = htmlspecialchars($d['description']);
+	}
+	if (isset($d['canonical'])) {
+		$canon = htmlspecialchars($d['canonical']);
+	}
 	$title = htmlspecialchars($d['title']);
 
 	?><!DOCTYPE html>
@@ -80,26 +65,34 @@ function php_html_header ($d) {
 		<?php } ?>
 		<!-- Fetch script early -->
 		<script id="deferred-main-js" defer src="main.js"></script>
-		<!-- Metadata -->
-		<link rel="canonical" href="<?= $canon ?>">
-		<meta name=description content="<?= $desc ?>">
+		<?php if (isset($canon)) { ?>
+			<link rel="canonical" href="<?= $canon ?>">
+		<?php }
+		if (isset($desc)) { ?>
+			<meta name=description content="<?= $desc ?>">
+		<?php } ?>
 		<!-- Favicons -->
 		<link rel="icon" type="image/png" sizes="32x32" href="<?= htmlspecialchars($d['favicon-32']) ?>">
 		<link rel="icon" type="image/png" sizes="16x16" href="<?= htmlspecialchars($d['favicon-16']) ?>">
 		<link rel="icon" type="image/png" sizes="196x196" href="<?= htmlspecialchars($d['favicon-196']) ?>">
+		<?php if (isset($canon) && isset($desc) && isset($d['og:image'])) { ?>
 		<!-- OpenGraph tags -->
-		<meta property="og:title" content="<?= $title ?>">
-		<meta property="og:type" content="website">
-		<meta property="og:image" content="<?= htmlspecialchars($d['og:image']) ?>">
-		<meta property="og:url" content="<?= $canon ?>">
-		<meta property="og:description" content="<?= $desc ?>">
-		<meta property="og:locale" content="en_US" />
+			<meta property="og:title" content="<?= $title ?>">
+			<meta property="og:type" content="website">
+			<meta property="og:image" content="<?= htmlspecialchars($d['og:image']) ?>">
+			<meta property="og:url" content="<?= $canon ?>">
+			<meta property="og:description" content="<?= $desc ?>">
+			<meta property="og:locale" content="en_US" />
+		<?php } ?>
 		<?php /* Others */ echo $d['endofhead'] ?? ""; ?>
 	</head>
 	<?php
 }
 
-// Keys: mainUrl, humanMaxFilesize, maxRetentionText
+/** Display page header
+ * 
+ * Keys: mainUrl, humanMaxFilesize, maxRetentionText
+ */
 function body_header ($d) {
 	?>
 	<a class="not-a-link center-text" href="<?= $d['mainUrl'] ?>"><h1 id="title">Uweh</h1></a>
@@ -107,14 +100,34 @@ function body_header ($d) {
 	<?php
 }
 
+/** Page footer (without generation line) */
 function page_footer ($d) {
 	?>
 	<p><a href="about.php">About this website</a></p>
 	<?php
 }
 
-// Display the upload form.
-// Keys: maxFilesize, longestFilename
+/** Display the generation line (and run cleanup job if needed)
+ * 
+ * Keys: version, cleanup-func
+ */
+function generation_line ($d) {
+	echo '<p class="gen-line">';
+		$ran_cleanup = $d['cleanup-func'](); # Run cleanup job if needed
+
+		$duration = timer();
+		$ram_in_mb = round(memory_get_peak_usage()/1048576, 2);
+		$version = $d['version'];
+		$cleanup_dot = ($ran_cleanup ? '.' : '');
+
+		echo "Generated in ${duration}s with ${ram_in_mb}MB by Uweh v${version}${cleanup_dot}";
+	echo '</p>';
+}
+
+/** Display the upload form
+ * 
+ * Keys: maxFilesize, longestFilename
+ */
 function html_upload_form ($d) {
 	?>
 	<form id="upload-form" method="post" enctype="multipart/form-data">
@@ -143,8 +156,10 @@ function html_upload_form ($d) {
 	<?php
 }
 
-// Print about text
-// Keys: humanMaxFilesize, maxRetentionText, mainUrl, abuseEmail
+/** Display the about page text
+ * 
+ * Keys: humanMaxFilesize, maxRetentionText, mainUrl, abuseEmail
+ */
 function about_text ($d) {
 	$email = htmlspecialchars($d['abuseEmail'])
 
@@ -168,31 +183,55 @@ function about_text ($d) {
 	<?php
 }
 
-// Keys: downloadUrl, mainUrl
-function html_download_url ($d) {
-	$download_url = htmlspecialchars($d['downloadUrl'])
+/** Display the upload result page with the download url (or the error message)
+ * 
+ * Keys: downloadUrl|errorMessage, mainUrl
+ */
+function result_page ($d) {
+	if (isset($d['downloadUrl'])) {
+		$download_url = htmlspecialchars($d['downloadUrl']);
+		?>
+		<p class="payload-msg">
+			Your download link is<br><a href="<?= $download_url ?>"><?= $download_url ?></a><br>
+			<button id="copy-link-btn" class="btn hidden">Copy link to clipboard</button>
+			<span id="copied-placeholder"></span>
+		</p>
+		<?php
+	} else {
+		$error_message = htmlspecialchars($d['errorMessage']);
+		?>
+		<p class="payload-msg error-msg">Error: <?= $error_message ?></p>
+		<?php
+	}
+
 	?>
-	<p class="payload-msg">
-		Your download link is<br><a href="<?= $download_url ?>"><?= $download_url ?></a><br>
-		<button id="copy-link-btn" class="btn hidden">Copy link to clipboard</button>
-		<span id="copied-placeholder"></span>
-	</p>
 	<div class="btn-ctn"><a class="btn not-a-link" href="<?= $d['mainUrl'] ?>">← Go back</a></div>
 	<?php
 }
 
+/** Display upload failure error message
+ * 
+ * Keys: errorMessage
+*/
+function html_error_message ($d) {
+	echo '<p class="payload-msg error-msg">Error: '.htmlspecialchars($d['errorMessage']).'</p>';
+}
+
+/** Display background image html */
 function riamu_picture ($d) {
 	?>
 	<picture id="riamu" >
 		<source srcset="riamu.webp" type="image/webp">
-		<img src="riamu.png">
+		<img src="riamu.png" alt="[background riamu image]">
 	</picture>
 	<?php
 }
 
-// Displays the script for the current page
-// It dumps the JS into the HTML for the index page, and waits for the script in the header on other pages
-// Keys: page, { filteringMode, extlist, maxFilesize } for index, { downloadUrl } for upload
+/** Displays the script for the current page
+ * 
+ * It dumps the JS into the HTML for the index page, and waits for the script in the header on other pages
+ * Keys: page, { filteringMode, extlist, maxFilesize } for index, { downloadUrl } for upload
+*/
 function page_javascript ($d) {
 	$page = $d['page'];
 
@@ -228,7 +267,7 @@ function page_javascript ($d) {
 
 		})();
 
-	<?php } elseif ($page === 'upload') { ?>
+	<?php } elseif ($page === 'upload' && isset($d['downloadUrl'])) { ?>
 		(function () {
 
 			let main_js = document.getElementById('deferred-main-js');
@@ -245,10 +284,12 @@ function page_javascript ($d) {
 	echo "</script>";
 }
 
+/** HTML opening tag */
 function html_start ($s) {
 	echo "<$s>";
 }
 
+/** HTML closing tag */
 function html_end ($s) {
 	echo "</$s>";
 }

@@ -16,8 +16,10 @@ $d = [
 	"mainUrl" => UWEH_MAIN_URL,
 
 	# Html head
-	'canonical' => UWEH_MAIN_URL.'about.php',
 	'title' => 'Uweh - About',
+	#| NB Copied from index.php
+	'description' => "Temporary file hosting. Share files up to " . Uweh\human_bytes(UWEH_MAX_FILESIZE) . " for " . UWEH_MAX_RETENTION_TEXT . ".",
+	'canonical' => UWEH_MAIN_URL.'about.php',
 	"favicon-32" => UWEH_MAIN_URL.'favicon-32.png',
 	"favicon-16" => UWEH_MAIN_URL.'favicon-16.png',
 	"favicon-196" => UWEH_MAIN_URL.'favicon-196.png',

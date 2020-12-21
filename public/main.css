@@ -43,9 +43,17 @@ body > * {
 main {
 	min-width: 20rem;
 	margin: 1em 1ch;
+	margin-top: 3em;
 	padding: 1em;
 	box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 	background-color: #FEFEFEBB;
+}
+
+/* Remove (most of) the top margin if everything would fit on the screen */
+@media(max-height: 700px) {
+	main {
+		margin-top: 1em;
+	}
 }
 
 p {

@@ -5,7 +5,7 @@ namespace Uweh;
 use \Exception;
 require_once 'config.php';
 
-const VERSION = "2.2";
+const VERSION = "2.3";
 
 const PREFIX_ALPHABET = 'abdefghjknopqstuvxyzABCDEFHJKLMNPQRSTUVWXYZ345679'; # 49 letters without homoglyphs
 const PREFIX_ALPHABET_LAST = 48; # == strlen(ALPHABET) - 1
@@ -66,7 +66,7 @@ function save_file (array $file, array $flags = array()) : string {
 	for ($i = 0; $i < UWEH_PREFIX_MAX_TRIES; $i++) {
 		$subdir = gen_prefix();
 		$filepath = $subdir . '/' . $filename;
-		if ( $found = !file_exists($fileroot.$filepath) ) break;
+		if ( $found = !@file_exists($fileroot.$filepath) ) break;
 	}
 	if (!$found) throw new FilenameCollision($filename);
 
@@ -102,6 +102,19 @@ function save_file (array $file, array $flags = array()) : string {
 function get_download_url (string $filepath) : string {
 	$encoded = implode("/", array_map("rawurlencode", explode("/", $filepath)));
 	return UWEH_DOWNLOAD_URL.$encoded;
+}
+
+/** Tests if a given path still exists. Rejects all paths containing '..' */
+function filepath_exists (string $filepath) : bool {
+	$parts = explode('/', $filepath);
+	foreach ($parts as $part) {
+		if ($part === '..') {
+			return False;
+		}
+	}
+	
+	$fileroot = make_absolute(UWEH_FILES_PATH);
+	return @file_exists($fileroot.$filepath);
 }
 
 /** Try to run poor man's cron cleanup job based on the configuration
@@ -201,8 +214,6 @@ function shorten_name (string $s) : array {
 		$strcut = function ($s, $pos) { return substr($s, 0, $pos); };
 	}
 
-	var_dump($s);
-
 	# If strpos returns false (thus strrpos as well), $i numifies to 0 so both ($cut > 0) will be false
 	$i = strpos($s, '.');
 	$cut = UWEH_LONGEST_FILENAME - ($len - $i); # prefix length
@@ -211,8 +222,6 @@ function shorten_name (string $s) : array {
 	$i = strrpos($s, '.');
 	$cut = UWEH_LONGEST_FILENAME - ($len - $i);
 	if ($cut > 0) return [ $strcut($s, $cut) . substr($s, $i), False ];
-
-	var_dump($strcut("abc", 1));
 
 	# Default to blindly cutting
 	return [ $strcut($s, UWEH_LONGEST_FILENAME), True ];
@@ -339,13 +348,15 @@ function is_single_file (array $file) : bool {
 
 /** Abstraction over Uweh business exceptions */
 class Error {
+	# NB don't use 0 as an error code
 	const SOME_ERROR   = -1; # Generic error
 	const BAD_FILE     = 1; # File too large
 	const UPLOAD_FAIL  = 2; # No file uploaded (correctly)
 	const SERVER_ERROR = 3; # Server error (IO generally)
+	const MULTIPLE_FILES = 10; # Multiple files were uploaded (not returned by categorize)
 
 	/** Categorize the exception into one of the Error constants */
-	public function categorize (Exception $e) : int {
+	public static function categorize (Exception $e) : int {
 		if ($e instanceof UploadError) {
 			switch ($e->error_code) {
 				case UPLOAD_ERR_INI_SIZE:
@@ -388,20 +399,4 @@ function human_bytes (int $n) : string {
 	}
 	$n = floor($n * 10) / 10; # Truncate to 1 decimal place
 	return $n . $units[$i];
-}
-
-/** Flip flop timer that rounds to 2 decimal places.
- * 
- * From <https://stackoverflow.com/a/4412766/5226686>
- */
-function timer () : ?float {
-	static $start;
-	if (is_null($start)) {
-		$start = microtime(true);
-		return null;
-	} else {
-		$diff = ceil((microtime(true) - $start) * 100) / 100;
-		$start = null;
-		return $diff;
-	}
 }
