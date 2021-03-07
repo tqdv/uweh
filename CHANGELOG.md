@@ -1,5 +1,9 @@
 # Changelog
 
+## [v2.4] – 2021-03-07
+
+- Add php.ini `post_max_size` check in `status.php`.
+
 ## [v2.3] – 2020-12-21
 
 - Implement an MVC (?) pattern by creating UwehTpl

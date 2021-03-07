@@ -17,7 +17,7 @@ Requirements:
 
 Deployment steps:
 - Copy `src/config.template.php` to `src/config.php` and customize it to your liking. 
-- Configure the web server to serve php files and the uploaded files. Make sure that it doesn't execute user-uploaded php files, and that the file size limits in php.ini (`upload_max_filesize`), and your webserver (`client_max_body_size` for nginx, `LimitRequestBody` for Apache) are larger than `UWEH_MAX_FILESIZE`.
+- Configure the web server to serve php files and the uploaded files. Make sure that it doesn't execute user-uploaded php files, and that the file size limits in php.ini (`upload_max_filesize` and `post_max_size`), and your webserver (`client_max_body_size` for nginx, `LimitRequestBody` for Apache) are larger than `UWEH_MAX_FILESIZE`.
 - Add the file cleaning job to your crontab:
   ```cron
   0,15,30,45 * * * * sh /path/to/uweh/src/clean_files.sh >/dev/null 2>&1 

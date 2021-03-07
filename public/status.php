@@ -207,6 +207,10 @@ $ini_max_size = ini_get('upload_max_filesize');
 $max_size = shorthand_to_bytes($ini_max_size);
 row("upload_max_filesize (php.ini) ≥ UWEH_MAX_FILESIZE", "$ini_max_size (php.ini)", UWEH_MAX_FILESIZE <= $max_size);
 
+$ini_post_max_size = ini_get('post_max_size');
+$post_max_size = shorthand_to_bytes($ini_post_max_size);
+row("post_max_size (php.ini) ≥ UWEH_MAX_FILESIZE + 2KiB", "$ini_post_max_size (php.ini)", UWEH_MAX_FILESIZE <= $post_max_size + 2 * 1024);
+
 $file_limit_msg = "Probably";
 if (UWEH_MAX_FILESIZE > 1024 * 1024) $file_limit_msg = "To check manually";
 row("Web server file limits are configured correctly", $file_limit_msg, "meh");
